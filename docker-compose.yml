@@ -1,0 +1,51 @@
+services:
+  user-db:
+    image: postgres:15
+    container_name: user-db
+    environment:
+      POSTGRES_DB: "${POSTGRES_DB}"
+      POSTGRES_USER: "${POSTGRES_USER}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+    ports: 
+      - "${POSTGRES_HOST_PORT:-5432}:5432"
+    volumes:
+      - user_db_data:/var/lib/postgresql/data
+    networks:
+      - flavory-net
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  user-service:
+    container_name: user-service
+    build:
+      context: ./UserService
+    env_file:
+      - .env
+    ports: 
+      - "${USER_SERVICE_HOST_PORT:-8081}:8080"
+    environment:
+      SPRING_DATASOURCE_URL: "jdbc:postgresql://user-db:5432/${POSTGRES_DB}"
+      SPRING_DATASOURCE_USERNAME: "${POSTGRES_USER}"
+      SPRING_DATASOURCE_PASSWORD: "${POSTGRES_PASSWORD}"
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: ${AUTH0_ISSUER_URI}
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_AUDIENCE: ${AUTH0_AUDIENCE}
+    depends_on:
+      - user-db
+    volumes:
+      - uploads:/uploads
+    networks:
+      - flavory-net
+    restart: unless-stopped
+
+
+volumes:
+  user_db_data:
+  uploads:
+
+networks:
+  flavory-net:
+    driver: bridge
