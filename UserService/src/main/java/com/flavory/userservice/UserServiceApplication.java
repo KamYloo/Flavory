@@ -1,4 +1,4 @@
-package com.flavory.UserService;
+package com.flavory.userservice;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

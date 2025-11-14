@@ -9,9 +9,9 @@
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.flavory</groupId>
-	<artifactId>UserService</artifactId>
+	<artifactId>userservice</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<name>UserService</name>
+	<name>userservice</name>
 	<description>Demo project for Spring Boot</description>
 	<url/>
 	<licenses>

@@ -1,4 +1,4 @@
-package com.flavory.UserService;
+package com.flavory.userservice;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
