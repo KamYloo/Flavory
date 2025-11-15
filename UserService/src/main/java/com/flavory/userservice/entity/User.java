@@ -1,5 +1,7 @@
 package com.flavory.userservice.entity;
 
+import com.flavory.userservice.entity.enums.UserRole;
+import com.flavory.userservice.entity.enums.UserStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -38,11 +40,24 @@ public class User {
     @Column(nullable = false, length = 50)
     private String lastName;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private UserRole role;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    @Builder.Default
+    private UserStatus status = UserStatus.ACTIVE;
+
     @Column(length = 20)
     private String phoneNumber;
 
     @Column(length = 500)
     private String profileImageUrl;
+
+    @Column(name = "is_verified")
+    @Builder.Default
+    private Boolean isVerified = false;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -54,4 +69,8 @@ public class User {
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Address> addresses = new ArrayList<>();
+
+    public String getFullName() {
+        return firstName + " " + lastName;
+    }
 }
