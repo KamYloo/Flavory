@@ -1,4 +1,45 @@
 services:
+  eureka-server:
+    container_name: eureka-server
+    build:
+      context: ./eureka-server
+    ports:
+      - "8761:8761"
+    networks:
+      - flavory-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+    restart: unless-stopped
+
+  api-gateway:
+    container_name: api-gateway
+    build:
+      context: ./api-gateway
+    env_file:
+      - .env
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: "${AUTH0_ISSUER_URI}"
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_AUDIENCES: "${AUTH0_AUDIENCE}"
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka-server:8761/eureka/"
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+    networks:
+      - flavory-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 90s
+    restart: unless-stopped
+
   user-db:
     image: postgres:15
     container_name: user-db
@@ -6,7 +47,7 @@ services:
       POSTGRES_DB: "${POSTGRES_DB}"
       POSTGRES_USER: "${POSTGRES_USER}"
       POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
-    ports: 
+    ports:
       - "${POSTGRES_HOST_PORT:-5432}:5432"
     volumes:
       - user_db_data:/var/lib/postgresql/data
@@ -14,7 +55,7 @@ services:
       - flavory-net
     restart: unless-stopped
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -25,7 +66,7 @@ services:
       context: ./UserService
     env_file:
       - .env
-    ports: 
+    ports:
       - "${USER_SERVICE_HOST_PORT:-8081}:8080"
     environment:
       SPRING_DATASOURCE_URL: "jdbc:postgresql://user-db:5432/${POSTGRES_DB}"
@@ -33,14 +74,24 @@ services:
       SPRING_DATASOURCE_PASSWORD: "${POSTGRES_PASSWORD}"
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: ${AUTH0_ISSUER_URI}
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_AUDIENCE: ${AUTH0_AUDIENCE}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka-server:8761/eureka/"
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
     depends_on:
-      - user-db
+      user-db:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
     volumes:
       - uploads:/uploads
     networks:
       - flavory-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 90s
     restart: unless-stopped
-
 
 volumes:
   user_db_data:
