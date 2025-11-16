@@ -12,7 +12,7 @@ import java.util.List;
 @Slf4j
 public class JwtService {
 
-    private static final String NAMESPACE = "https://api.flavory.com/";
+    private static final String NAMESPACE = "https://flavory.com/";
 
     public JwtClaims extractClaims(Authentication authentication) {
         Jwt jwt = getJwt(authentication);
