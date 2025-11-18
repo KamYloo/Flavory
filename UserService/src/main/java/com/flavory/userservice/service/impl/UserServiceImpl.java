@@ -45,8 +45,17 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     public UserResponse updateUser(Long id, UpdateUserRequest request, String currentAuth0Id) {
-        return null;
+        User user = userRepository.findById(id).orElseThrow(UserNotFoundException::new);
+
+        if (!user.getAuth0Id().equals(currentAuth0Id)) {
+            throw new UserNotFoundException();
+        }
+
+        userMapper.updateEntityFromDto(request, user);
+        User userUpdated = userRepository.save(user);
+        return userMapper.toResponse(userUpdated);
     }
 
     @Override

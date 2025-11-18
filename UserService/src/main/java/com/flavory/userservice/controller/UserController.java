@@ -1,10 +1,12 @@
 package com.flavory.userservice.controller;
 
+import com.flavory.userservice.dto.request.UpdateUserRequest;
 import com.flavory.userservice.dto.response.ApiResponse;
 import com.flavory.userservice.dto.response.UserResponse;
 import com.flavory.userservice.security.JwtClaims;
 import com.flavory.userservice.security.JwtService;
 import com.flavory.userservice.service.UserService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -32,5 +34,15 @@ public class UserController {
     public ResponseEntity<ApiResponse<UserResponse>> getUserById(@PathVariable Long id) {
         UserResponse user = userService.getUserById(id);
         return ResponseEntity.ok(ApiResponse.success(user));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<ApiResponse<UserResponse>> updateUser(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateUserRequest request,
+            Authentication authentication) {
+        String authOID = jwtService.extractAuth0Id(authentication);
+        UserResponse user = userService.updateUser(id, request, authOID);
+        return ResponseEntity.ok(ApiResponse.success("User has been successfully updated", user));
     }
 }
