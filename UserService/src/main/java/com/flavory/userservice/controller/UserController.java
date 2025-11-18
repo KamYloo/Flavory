@@ -27,4 +27,10 @@ public class UserController {
 
         return ResponseEntity.ok(ApiResponse.success(user));
     }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<ApiResponse<UserResponse>> getUserById(@PathVariable Long id) {
+        UserResponse user = userService.getUserById(id);
+        return ResponseEntity.ok(ApiResponse.success(user));
+    }
 }

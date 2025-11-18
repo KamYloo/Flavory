@@ -5,6 +5,7 @@ import com.flavory.userservice.dto.response.UserResponse;
 import com.flavory.userservice.entity.User;
 import com.flavory.userservice.entity.enums.UserRole;
 import com.flavory.userservice.entity.enums.UserStatus;
+import com.flavory.userservice.exception.UserNotFoundException;
 import com.flavory.userservice.mapper.UserMapper;
 import com.flavory.userservice.repository.UserRepository;
 import com.flavory.userservice.security.JwtClaims;
@@ -37,8 +38,10 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public UserResponse getUserById(Long id) {
-        return null;
+        User user = userRepository.findById(id).orElseThrow(UserNotFoundException::new);
+        return userMapper.toResponse(user);
     }
 
     @Override
