@@ -15,6 +15,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 @Service
 @RequiredArgsConstructor
 public class AddressServiceImpl implements AddressService {
@@ -57,6 +60,16 @@ public class AddressServiceImpl implements AddressService {
                 .orElseThrow(AddressNotFoundException::new);
 
         return addressMapper.toResponse(address);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<AddressResponse> getUserAddresses(Long userId, String currentAuth0Id) {
+        getUserAndValidateAccess(userId, currentAuth0Id);
+
+        return addressRepository.findByUserId(userId).stream()
+                .map(addressMapper::toResponse)
+                .collect(Collectors.toList());
     }
 
     private User getUserAndValidateAccess(Long userId, String currentAuth0Id) {

@@ -12,6 +12,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/users/{userId}/addresses")
 @RequiredArgsConstructor
@@ -41,5 +43,15 @@ public class AddressController {
         String auth0Id = jwtService.extractAuth0Id(authentication);
         AddressResponse address = addressService.getAddressById(userId, addressId, auth0Id);
         return ResponseEntity.ok(ApiResponse.success(address));
+    }
+
+    @GetMapping
+    public ResponseEntity<ApiResponse<List<AddressResponse>>> getUserAddresses(
+            @PathVariable Long userId,
+            Authentication authentication) {
+        String auth0Id = jwtService.extractAuth0Id(authentication);
+        List<AddressResponse> addresses = addressService.getUserAddresses(userId, auth0Id);
+
+        return ResponseEntity.ok(ApiResponse.success(addresses));
     }
 }
