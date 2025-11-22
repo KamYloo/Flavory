@@ -68,5 +68,17 @@ public class AddressController {
 
         return ResponseEntity.ok(ApiResponse.success("The address has been successfully updated", address));
     }
+
+    @DeleteMapping("/{addressId}")
+    public ResponseEntity<ApiResponse<Void>> deleteAddress(
+            @PathVariable Long userId,
+            @PathVariable Long addressId,
+            Authentication authentication) {
+
+        String auth0Id = jwtService.extractAuth0Id(authentication);
+        addressService.deleteAddress(userId, addressId, auth0Id);
+
+        return ResponseEntity.ok(ApiResponse.success("The address has been successfully deleted", null));
+    }
 }
 

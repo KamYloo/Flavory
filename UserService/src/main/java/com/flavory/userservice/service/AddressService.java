@@ -11,4 +11,5 @@ public interface AddressService {
     AddressResponse getAddressById(Long userId, Long addressId, String currentAuth0Id);
     List<AddressResponse> getUserAddresses(Long userId, String currentAuth0Id);
     AddressResponse updateAddress(Long userId, Long addressId, UpdateAddressRequest request, String currentAuth0Id);
+    void deleteAddress(Long userId, Long addressId, String currentAuth0Id);
 }

@@ -92,6 +92,27 @@ public class AddressServiceImpl implements AddressService {
         return addressMapper.toResponse(updatedAddress);
     }
 
+    @Override
+    @Transactional
+    public void deleteAddress(Long userId, Long addressId, String currentAuth0Id) {
+        getUserAndValidateAccess(userId, currentAuth0Id);
+
+        Address address = addressRepository.findByIdAndUserId(addressId, userId)
+                .orElseThrow(AddressNotFoundException::new);
+
+        boolean wasDefault = address.getIsDefault();
+        addressRepository.delete(address);
+
+        if (wasDefault) {
+            List<Address> remainingAddresses = addressRepository.findByUserId(userId);
+            if (!remainingAddresses.isEmpty()) {
+                Address newDefault = remainingAddresses.getFirst();
+                newDefault.setIsDefault(true);
+                addressRepository.save(newDefault);
+            }
+        }
+    }
+
     private User getUserAndValidateAccess(Long userId, String currentAuth0Id) {
         User user = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
         if (!user.getAuth0Id().equals(currentAuth0Id)) {
