@@ -4,6 +4,7 @@ import com.flavory.userservice.dto.request.CreateAddressRequest;
 import com.flavory.userservice.dto.response.AddressResponse;
 import com.flavory.userservice.entity.Address;
 import com.flavory.userservice.entity.User;
+import com.flavory.userservice.exception.AddressNotFoundException;
 import com.flavory.userservice.exception.UnauthorizedAccessException;
 import com.flavory.userservice.exception.UserNotFoundException;
 import com.flavory.userservice.mapper.AddressMapper;
@@ -46,6 +47,16 @@ public class AddressServiceImpl implements AddressService {
 
         Address savedAddress = addressRepository.save(address);
         return addressMapper.toResponse(savedAddress);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public AddressResponse getAddressById(Long userId, Long addressId, String currentAuth0Id) {
+        getUserAndValidateAccess(userId, currentAuth0Id);
+        Address address = addressRepository.findByIdAndUserId(addressId, userId)
+                .orElseThrow(AddressNotFoundException::new);
+
+        return addressMapper.toResponse(address);
     }
 
     private User getUserAndValidateAccess(Long userId, String currentAuth0Id) {

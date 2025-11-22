@@ -32,4 +32,14 @@ public class AddressController {
                 .status(HttpStatus.CREATED)
                 .body(ApiResponse.success("The address has been successfully created", address));
     }
+
+    @GetMapping("/{addressId}")
+    public ResponseEntity<ApiResponse<AddressResponse>> getAddressById (
+            @PathVariable Long userId,
+            @PathVariable Long addressId,
+            Authentication authentication) {
+        String auth0Id = jwtService.extractAuth0Id(authentication);
+        AddressResponse address = addressService.getAddressById(userId, addressId, auth0Id);
+        return ResponseEntity.ok(ApiResponse.success(address));
+    }
 }
