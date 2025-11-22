@@ -1,6 +1,7 @@
 package com.flavory.userservice.controller;
 
 import com.flavory.userservice.dto.request.CreateAddressRequest;
+import com.flavory.userservice.dto.request.UpdateAddressRequest;
 import com.flavory.userservice.dto.response.AddressResponse;
 import com.flavory.userservice.dto.response.ApiResponse;
 import com.flavory.userservice.security.JwtService;
@@ -54,4 +55,18 @@ public class AddressController {
 
         return ResponseEntity.ok(ApiResponse.success(addresses));
     }
+
+    @PutMapping("/{addressId}")
+    public ResponseEntity<ApiResponse<AddressResponse>> updateAddress(
+            @PathVariable Long userId,
+            @PathVariable Long addressId,
+            @Valid @RequestBody UpdateAddressRequest request,
+            Authentication authentication) {
+
+        String auth0Id = jwtService.extractAuth0Id(authentication);
+        AddressResponse address = addressService.updateAddress(userId, addressId, request, auth0Id);
+
+        return ResponseEntity.ok(ApiResponse.success("The address has been successfully updated", address));
+    }
 }
+

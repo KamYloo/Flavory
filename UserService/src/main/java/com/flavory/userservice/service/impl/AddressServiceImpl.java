@@ -1,6 +1,7 @@
 package com.flavory.userservice.service.impl;
 
 import com.flavory.userservice.dto.request.CreateAddressRequest;
+import com.flavory.userservice.dto.request.UpdateAddressRequest;
 import com.flavory.userservice.dto.response.AddressResponse;
 import com.flavory.userservice.entity.Address;
 import com.flavory.userservice.entity.User;
@@ -70,6 +71,25 @@ public class AddressServiceImpl implements AddressService {
         return addressRepository.findByUserId(userId).stream()
                 .map(addressMapper::toResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public AddressResponse updateAddress(Long userId, Long addressId, UpdateAddressRequest request, String currentAuth0Id) {
+        getUserAndValidateAccess(userId, currentAuth0Id);
+
+        Address address = addressRepository.findByIdAndUserId(addressId, userId)
+                .orElseThrow(AddressNotFoundException::new);
+
+        addressMapper.updateEntityFromDto(request, address);
+
+        if (Boolean.TRUE.equals(address.getIsDefault())) {
+            addressRepository.clearDefaultAddress(userId);
+            address.setIsDefault(true);
+        }
+
+        Address updatedAddress = addressRepository.save(address);
+        return addressMapper.toResponse(updatedAddress);
     }
 
     private User getUserAndValidateAccess(Long userId, String currentAuth0Id) {
