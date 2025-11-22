@@ -69,6 +69,18 @@ public class AddressController {
         return ResponseEntity.ok(ApiResponse.success("The address has been successfully updated", address));
     }
 
+    @PatchMapping("/{addressId}/default")
+    public ResponseEntity<ApiResponse<AddressResponse>> setDefaultAddress(
+            @PathVariable Long userId,
+            @PathVariable Long addressId,
+            Authentication authentication) {
+
+        String auth0Id = jwtService.extractAuth0Id(authentication);
+        AddressResponse address = addressService.setDefaultAddress(userId, addressId, auth0Id);
+
+        return ResponseEntity.ok(ApiResponse.success("Address set as default", address));
+    }
+
     @DeleteMapping("/{addressId}")
     public ResponseEntity<ApiResponse<Void>> deleteAddress(
             @PathVariable Long userId,
