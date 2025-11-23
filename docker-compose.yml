@@ -60,6 +60,26 @@ services:
       timeout: 5s
       retries: 5
 
+  dish-db:
+    image: postgres:15
+    container_name: dish-db
+    environment:
+      POSTGRES_DB: "${DISH_POSTGRES_DB}"
+      POSTGRES_USER: "${DISH_POSTGRES_USER}"
+      POSTGRES_PASSWORD: "${DISH_POSTGRES_PASSWORD}"
+    ports:
+      - "${DISH_POSTGRES_HOST_PORT:-5433}:5432"
+    volumes:
+      - dish_db_data:/var/lib/postgresql/data
+    networks:
+      - flavory-net
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${DISH_POSTGRES_USER} -d ${DISH_POSTGRES_DB}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 #  user-service:
 #    container_name: user-service
 #    build:
@@ -93,8 +113,44 @@ services:
 #      start_period: 90s
 #    restart: unless-stopped
 
+#  dish-service:
+#    container_name: dish-service
+#    build:
+#      context: ./dish-service
+#    env_file:
+#      - .env
+#    ports:
+#      - "${DISH_SERVICE_HOST_PORT:-8082}:8080"
+#    environment:
+#      SPRING_DATASOURCE_URL: "jdbc:postgresql://dish-db:5432/${DISH_POSTGRES_DB}"
+#      SPRING_DATASOURCE_USERNAME: "${DISH_POSTGRES_USER}"
+#      SPRING_DATASOURCE_PASSWORD: "${DISH_POSTGRES_PASSWORD}"
+#      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: ${AUTH0_ISSUER_URI}
+#      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_AUDIENCE: ${AUTH0_AUDIENCE}
+#      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka-server:8761/eureka/"
+#      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
+#    depends_on:
+#      dish-db:
+#        condition: service_healthy
+#      eureka-server:
+#        condition: service_healthy
+#      rabbitmq:
+#        condition: service_healthy
+#    volumes:
+#      - uploads:/uploads
+#    networks:
+#      - flavory-net
+#    healthcheck:
+#      test: [ "CMD", "curl", "-f", "http://localhost:8080/actuator/health" ]
+#      interval: 15s
+#      timeout: 5s
+#      retries: 5
+#      start_period: 90s
+#    restart: unless-stopped
+
 volumes:
   user_db_data:
+  dish_db_data:
   uploads:
 
 networks:

@@ -12,6 +12,11 @@ spring:
               predicates:
                 - Path=/api/users/**
 
+            - id: dish-service-route
+              uri: lb://dish-service
+              predicates:
+                - Path=/api/dishes/**
+
           discovery:
             locator:
               enabled: false
