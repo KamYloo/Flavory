@@ -4,6 +4,7 @@ import com.flavory.dishservice.dto.request.CreateDishRequest;
 import com.flavory.dishservice.dto.response.DishResponse;
 import com.flavory.dishservice.entity.Dish;
 import com.flavory.dishservice.exception.BusinessValidationException;
+import com.flavory.dishservice.exception.DishNotFoundException;
 import com.flavory.dishservice.exception.MaxDishesLimitException;
 import com.flavory.dishservice.mapper.DishMapper;
 import com.flavory.dishservice.repository.DishRepository;
@@ -35,6 +36,14 @@ public class DishServiceImpl implements DishService {
 
         Dish savedDish = dishRepository.save(dish);
         return dishMapper.toResponse(savedDish);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public DishResponse getDishById(Long dishId) {
+        Dish dish = dishRepository.findByIdAndIsActiveTrue(dishId)
+                .orElseThrow(() -> new DishNotFoundException(dishId));
+        return dishMapper.toResponse(dish);
     }
 
     private void validateDishCreation(CreateDishRequest request, String cookId) {

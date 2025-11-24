@@ -40,4 +40,10 @@ public class DishController {
                 .status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Danie zostało utworzone pomyślnie", dish));
     }
+
+    @GetMapping("/{dishId}")
+    public ResponseEntity<ApiResponse<DishResponse>> getDishById(@PathVariable Long dishId) {
+        DishResponse dish = dishService.getDishById(dishId);
+        return ResponseEntity.ok(ApiResponse.success(dish));
+    }
 }
