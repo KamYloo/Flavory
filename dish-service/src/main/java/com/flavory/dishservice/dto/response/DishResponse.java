@@ -19,7 +19,7 @@ import java.util.Set;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class DishResponse {
     private Long id;
-    private Long cookId;
+    private String cookId;
     private String name;
     private String description;
     private BigDecimal price;

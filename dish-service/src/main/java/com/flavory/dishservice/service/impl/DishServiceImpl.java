@@ -13,6 +13,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class DishServiceImpl implements DishService {
@@ -24,25 +26,18 @@ public class DishServiceImpl implements DishService {
 
     @Override
     @Transactional
-    public DishResponse createDish(CreateDishRequest request, Long cookId) {
+    public DishResponse createDish(CreateDishRequest request, String cookId, List<String> imageUrls) {
         validateDishCreation(request, cookId);
 
         Dish dish = dishMapper.toEntity(request);
         dish.setCookId(cookId);
-
-        if (request.getCurrentStock() != null) {
-            dish.setCurrentStock(request.getCurrentStock());
-        }
-
-        if (request.getMaxDailyStock() != null) {
-            dish.setMaxDailyStock(request.getMaxDailyStock());
-        }
+        dish.setImages(imageUrls);
 
         Dish savedDish = dishRepository.save(dish);
         return dishMapper.toResponse(savedDish);
     }
 
-    private void validateDishCreation(CreateDishRequest request, Long cookId) {
+    private void validateDishCreation(CreateDishRequest request, String cookId) {
         Long currentDishCount = dishRepository.countActiveDishesForCook(cookId);
 
         if (currentDishCount >= maxDishesPerCook) {

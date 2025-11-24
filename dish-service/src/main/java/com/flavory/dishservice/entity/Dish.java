@@ -32,7 +32,7 @@ public class Dish {
     private Long id;
 
     @Column(nullable = false, name = "cook_id")
-    private Long cookId;
+    private String cookId;
 
     @Column(nullable = false, length = 200)
     private String name;

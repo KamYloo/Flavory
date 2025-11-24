@@ -9,8 +9,8 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface DishRepository extends JpaRepository<Dish, Long> {
     @Query("SELECT COUNT(d) FROM Dish d WHERE d.cookId = :cookId AND d.isActive = true")
-    Long countActiveDishesForCook(@Param("cookId") Long cookId);
+    Long countActiveDishesForCook(@Param("cookId") String cookId);
 
-    boolean existsByCookIdAndName(Long cookId, String name);
+    boolean existsByCookIdAndName(String cookId, String name);
 }
 

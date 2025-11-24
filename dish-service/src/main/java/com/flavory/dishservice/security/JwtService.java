@@ -8,7 +8,6 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 @Service
-@Slf4j
 public class JwtService {
 
     private static final String NAMESPACE = "https://flavory.com/";
@@ -23,7 +22,6 @@ public class JwtService {
         Object userIdClaim = getClaimObject(jwt, "user_id");
 
         if (userIdClaim == null) {
-            log.error("Token does not contain 'user_id'. Subject: {}", jwt.getSubject());
             throw new IllegalStateException("User ID not found in token. Check Auth0 Actions configuration.");
         }
 
@@ -35,7 +33,6 @@ public class JwtService {
             try {
                 return Long.parseLong((String) userIdClaim);
             } catch (NumberFormatException e) {
-                log.error("Cannot parse user_id from string: {}", userIdClaim);
             }
         } else if (userIdClaim instanceof Double) {
             return ((Double) userIdClaim).longValue();

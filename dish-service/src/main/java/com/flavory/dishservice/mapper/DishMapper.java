@@ -28,6 +28,8 @@ public interface DishMapper {
     @Mapping(target = "images", ignore = true)
     @Mapping(target = "available", constant = "true")
     @Mapping(target = "featured", constant = "false")
+    @Mapping(target = "currentStock", source = "currentStock", defaultValue = "0")
+    @Mapping(target = "maxDailyStock", source = "maxDailyStock", defaultValue = "0")
     @Mapping(target = "averageRating", expression = "java(java.math.BigDecimal.ZERO)")
     @Mapping(target = "totalRatings", constant = "0")
     @Mapping(target = "totalOrders", constant = "0")

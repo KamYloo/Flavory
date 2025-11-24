@@ -5,15 +5,17 @@ import com.flavory.dishservice.dto.response.ApiResponse;
 import com.flavory.dishservice.dto.response.DishResponse;
 import com.flavory.dishservice.security.JwtService;
 import com.flavory.dishservice.service.DishService;
+import com.flavory.dishservice.service.FileStorageService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/dishes")
@@ -21,14 +23,18 @@ import org.springframework.web.bind.annotation.RestController;
 public class DishController {
     private final DishService dishService;
     private final JwtService jwtService;
+    private final FileStorageService fileStorageService;
 
-    @PostMapping
+
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<DishResponse>> createDish(
-            @Valid @RequestBody CreateDishRequest request,
+            @Valid @ModelAttribute CreateDishRequest request,
+            @RequestParam(value = "images", required = false) List<MultipartFile> images,
             Authentication authentication) {
 
-        Long cookId = jwtService.extractUserId(authentication);
-        DishResponse dish = dishService.createDish(request, cookId);
+        String cookId = jwtService.extractAuth0Id(authentication);
+        List<String> imageUrls = fileStorageService.storeFiles(images);
+        DishResponse dish = dishService.createDish(request, cookId, imageUrls);
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
