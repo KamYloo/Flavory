@@ -1,0 +1,16 @@
+package com.flavory.dishservice.repository;
+
+import com.flavory.dishservice.entity.Dish;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface DishRepository extends JpaRepository<Dish, Long> {
+    @Query("SELECT COUNT(d) FROM Dish d WHERE d.cookId = :cookId AND d.isActive = true")
+    Long countActiveDishesForCook(@Param("cookId") Long cookId);
+
+    boolean existsByCookIdAndName(Long cookId, String name);
+}
+
