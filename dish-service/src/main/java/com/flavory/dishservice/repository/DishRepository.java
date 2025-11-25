@@ -16,5 +16,6 @@ public interface DishRepository extends JpaRepository<Dish, Long> {
     boolean existsByCookIdAndName(String cookId, String name);
 
     Optional<Dish> findByIdAndIsActiveTrue(Long id);
+    Optional<Dish> findByIdAndCookId(Long id, String cookId);
 }
 

@@ -46,4 +46,14 @@ public class DishController {
         DishResponse dish = dishService.getDishById(dishId);
         return ResponseEntity.ok(ApiResponse.success(dish));
     }
+
+    @GetMapping("/my-dishes/{dishId}")
+    public ResponseEntity<ApiResponse<DishResponse>> getMyDish(
+            @PathVariable Long dishId,
+            Authentication authentication) {
+
+        String cookId = jwtService.extractAuth0Id(authentication);
+        DishResponse dish = dishService.getDishByIdForCook(dishId, cookId);
+        return ResponseEntity.ok(ApiResponse.success(dish));
+    }
 }

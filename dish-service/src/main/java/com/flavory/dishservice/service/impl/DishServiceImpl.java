@@ -46,6 +46,15 @@ public class DishServiceImpl implements DishService {
         return dishMapper.toResponse(dish);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public DishResponse getDishByIdForCook(Long dishId, String cookId) {
+        Dish dish = dishRepository.findByIdAndCookId(dishId, cookId)
+                .orElseThrow(() -> new DishNotFoundException(dishId));
+
+        return dishMapper.toResponse(dish);
+    }
+
     private void validateDishCreation(CreateDishRequest request, String cookId) {
         Long currentDishCount = dishRepository.countActiveDishesForCook(cookId);
 
