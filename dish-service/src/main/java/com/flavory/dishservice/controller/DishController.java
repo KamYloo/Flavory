@@ -71,4 +71,14 @@ public class DishController {
         Page<DishResponse> dishes = dishService.getDishesByCook(cookId, pageable);
         return ResponseEntity.ok(ApiResponse.success(dishes));
     }
+
+    @GetMapping("/featured")
+    public ResponseEntity<ApiResponse<Page<DishResponse>>> getFeaturedDishes(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        Pageable pageable = PageRequest.of(page, size);
+        Page<DishResponse> dishes = dishService.getFeaturedDishes(pageable);
+        return ResponseEntity.ok(ApiResponse.success(dishes));
+    }
 }

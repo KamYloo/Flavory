@@ -20,5 +20,9 @@ public interface DishRepository extends JpaRepository<Dish, Long> {
     Optional<Dish> findByIdAndIsActiveTrue(Long id);
     Optional<Dish> findByIdAndCookId(Long id, String cookId);
     Page<Dish> findByCookIdAndIsActiveTrue(String cookId, Pageable pageable);
+
+    @Query("SELECT d FROM Dish d WHERE d.featured = true " +
+            "AND d.isActive = true AND d.available = true AND d.currentStock > 0")
+    Page<Dish> findFeaturedDishes(Pageable pageable);
 }
 

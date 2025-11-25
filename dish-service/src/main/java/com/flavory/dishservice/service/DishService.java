@@ -12,4 +12,5 @@ public interface DishService {
     DishResponse getDishById(Long dishId);
     DishResponse getDishByIdForCook(Long dishId, String cookId);
     Page<DishResponse> getDishesByCook(String cookId, Pageable pageable);
+    Page<DishResponse> getFeaturedDishes(Pageable pageable);
 }
