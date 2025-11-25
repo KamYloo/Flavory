@@ -11,6 +11,8 @@ import com.flavory.dishservice.repository.DishRepository;
 import com.flavory.dishservice.service.DishService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -53,6 +55,13 @@ public class DishServiceImpl implements DishService {
                 .orElseThrow(() -> new DishNotFoundException(dishId));
 
         return dishMapper.toResponse(dish);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<DishResponse> getDishesByCook(String cookId, Pageable pageable) {
+        return dishRepository.findByCookIdAndIsActiveTrue(cookId, pageable)
+                .map(dishMapper::toResponse);
     }
 
     private void validateDishCreation(CreateDishRequest request, String cookId) {

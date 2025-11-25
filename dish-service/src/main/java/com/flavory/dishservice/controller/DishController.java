@@ -8,6 +8,10 @@ import com.flavory.dishservice.service.DishService;
 import com.flavory.dishservice.service.FileStorageService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -55,5 +59,16 @@ public class DishController {
         String cookId = jwtService.extractAuth0Id(authentication);
         DishResponse dish = dishService.getDishByIdForCook(dishId, cookId);
         return ResponseEntity.ok(ApiResponse.success(dish));
+    }
+
+    @GetMapping("/cook/{cookId}")
+    public ResponseEntity<ApiResponse<Page<DishResponse>>> getDishesByCook(
+            @PathVariable String cookId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        Page<DishResponse> dishes = dishService.getDishesByCook(cookId, pageable);
+        return ResponseEntity.ok(ApiResponse.success(dishes));
     }
 }
