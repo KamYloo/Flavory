@@ -71,6 +71,13 @@ public class DishServiceImpl implements DishService {
                 .map(dishMapper::toResponse);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public Page<DishResponse> getTopRatedDishes(Pageable pageable) {
+        return dishRepository.findTopRatedDishes(pageable)
+                .map(dishMapper::toResponse);
+    }
+
     private void validateDishCreation(CreateDishRequest request, String cookId) {
         Long currentDishCount = dishRepository.countActiveDishesForCook(cookId);
 
