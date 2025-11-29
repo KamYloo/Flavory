@@ -1,6 +1,7 @@
 package com.flavory.dishservice.service;
 
 import com.flavory.dishservice.dto.request.CreateDishRequest;
+import com.flavory.dishservice.dto.request.DishSearchCriteria;
 import com.flavory.dishservice.dto.response.DishResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -14,4 +15,5 @@ public interface DishService {
     Page<DishResponse> getDishesByCook(String cookId, Pageable pageable);
     Page<DishResponse> getFeaturedDishes(Pageable pageable);
     Page<DishResponse> getTopRatedDishes(Pageable pageable);
+    Page<DishResponse> searchDishes(DishSearchCriteria criteria, Pageable pageable);
 }

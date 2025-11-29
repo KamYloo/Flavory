@@ -1,6 +1,7 @@
 package com.flavory.dishservice.service.impl;
 
 import com.flavory.dishservice.dto.request.CreateDishRequest;
+import com.flavory.dishservice.dto.request.DishSearchCriteria;
 import com.flavory.dishservice.dto.response.DishResponse;
 import com.flavory.dishservice.entity.Dish;
 import com.flavory.dishservice.exception.BusinessValidationException;
@@ -9,10 +10,12 @@ import com.flavory.dishservice.exception.MaxDishesLimitException;
 import com.flavory.dishservice.mapper.DishMapper;
 import com.flavory.dishservice.repository.DishRepository;
 import com.flavory.dishservice.service.DishService;
+import com.flavory.dishservice.specification.DishSpecification;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -75,6 +78,31 @@ public class DishServiceImpl implements DishService {
     @Transactional(readOnly = true)
     public Page<DishResponse> getTopRatedDishes(Pageable pageable) {
         return dishRepository.findTopRatedDishes(pageable)
+                .map(dishMapper::toResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<DishResponse> searchDishes(DishSearchCriteria criteria, Pageable pageable) {
+        Specification<Dish> spec = DishSpecification.searchWithFilters(
+                criteria.getSearchTerm(),
+                criteria.getCategory(),
+                criteria.getMinPrice(),
+                criteria.getMaxPrice(),
+                criteria.getExcludedAllergens(),
+                criteria.getMaxPreparationTime(),
+                criteria.getOnlyFeatured()
+        );
+
+        if (criteria.getMinRating() != null) {
+            spec = spec.and(DishSpecification.hasMinimumRating(criteria.getMinRating()));
+        }
+
+        if (criteria.getCookId() != null) {
+            spec = spec.and(DishSpecification.hasCookId(criteria.getCookId()));
+        }
+
+        return dishRepository.findAll(spec, pageable)
                 .map(dishMapper::toResponse);
     }
 

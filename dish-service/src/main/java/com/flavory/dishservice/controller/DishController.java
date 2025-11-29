@@ -1,8 +1,10 @@
 package com.flavory.dishservice.controller;
 
 import com.flavory.dishservice.dto.request.CreateDishRequest;
+import com.flavory.dishservice.dto.request.DishSearchCriteria;
 import com.flavory.dishservice.dto.response.ApiResponse;
 import com.flavory.dishservice.dto.response.DishResponse;
+import com.flavory.dishservice.entity.Dish;
 import com.flavory.dishservice.security.JwtService;
 import com.flavory.dishservice.service.DishService;
 import com.flavory.dishservice.service.FileStorageService;
@@ -89,6 +91,39 @@ public class DishController {
 
         Pageable pageable = PageRequest.of(page, size);
         Page<DishResponse> dishes = dishService.getTopRatedDishes(pageable);
+        return ResponseEntity.ok(ApiResponse.success(dishes));
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<ApiResponse<Page<DishResponse>>> searchDishes(
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) Dish.DishCategory category,
+            @RequestParam(required = false) java.math.BigDecimal minPrice,
+            @RequestParam(required = false) java.math.BigDecimal maxPrice,
+            @RequestParam(required = false) java.util.Set<Dish.Allergen> excludedAllergens,
+            @RequestParam(required = false) Integer maxPreparationTime,
+            @RequestParam(required = false) java.math.BigDecimal minRating,
+            @RequestParam(required = false) Boolean onlyFeatured,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "averageRating") String sortBy,
+            @RequestParam(defaultValue = "DESC") String sortDirection) {
+
+        DishSearchCriteria criteria = DishSearchCriteria.builder()
+                .searchTerm(q)
+                .category(category)
+                .minPrice(minPrice)
+                .maxPrice(maxPrice)
+                .excludedAllergens(excludedAllergens)
+                .maxPreparationTime(maxPreparationTime)
+                .minRating(minRating)
+                .onlyFeatured(onlyFeatured)
+                .build();
+
+        Sort.Direction direction = Sort.Direction.fromString(sortDirection);
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortBy));
+
+        Page<DishResponse> dishes = dishService.searchDishes(criteria, pageable);
         return ResponseEntity.ok(ApiResponse.success(dishes));
     }
 }
