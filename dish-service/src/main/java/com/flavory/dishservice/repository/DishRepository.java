@@ -30,6 +30,10 @@ public interface DishRepository extends JpaRepository<Dish, Long>, JpaSpecificat
             "AND d.currentStock > 0")
     Page<Dish> findAllAvailableDishes(Pageable pageable);
 
+    @Query("SELECT d FROM Dish d WHERE d.category = :category " +
+            "AND d.isActive = true AND d.available = true AND d.currentStock > 0")
+    Page<Dish> findByCategory(@Param("category") Dish.DishCategory category, Pageable pageable);
+
     @Query("SELECT d FROM Dish d WHERE d.isActive = true AND d.available = true " +
             "AND d.currentStock > 0 AND d.totalRatings >= 5 " +
             "ORDER BY d.averageRating DESC, d.totalRatings DESC")

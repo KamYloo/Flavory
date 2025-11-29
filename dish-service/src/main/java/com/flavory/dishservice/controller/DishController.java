@@ -94,6 +94,17 @@ public class DishController {
         return ResponseEntity.ok(ApiResponse.success(dishes));
     }
 
+    @GetMapping("/category/{category}")
+    public ResponseEntity<ApiResponse<Page<DishResponse>>> getDishesByCategory(
+            @PathVariable Dish.DishCategory category,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "averageRating"));
+        Page<DishResponse> dishes = dishService.getDishesByCategory(category, pageable);
+        return ResponseEntity.ok(ApiResponse.success(dishes));
+    }
+
     @GetMapping
     public ResponseEntity<ApiResponse<Page<DishResponse>>> getAllDishes(
             @RequestParam(defaultValue = "0") int page,

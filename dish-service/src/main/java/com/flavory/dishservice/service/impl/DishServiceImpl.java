@@ -90,6 +90,13 @@ public class DishServiceImpl implements DishService {
 
     @Override
     @Transactional(readOnly = true)
+    public Page<DishResponse> getDishesByCategory(Dish.DishCategory category, Pageable pageable) {
+        return dishRepository.findByCategory(category, pageable)
+                .map(dishMapper::toResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Page<DishResponse> searchDishes(DishSearchCriteria criteria, Pageable pageable) {
         Specification<Dish> spec = DishSpecification.searchWithFilters(
                 criteria.getSearchTerm(),
