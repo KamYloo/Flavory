@@ -3,6 +3,7 @@ package com.flavory.dishservice.controller;
 import com.flavory.dishservice.dto.request.CreateDishRequest;
 import com.flavory.dishservice.dto.request.DishSearchCriteria;
 import com.flavory.dishservice.dto.request.UpdateDishRequest;
+import com.flavory.dishservice.dto.request.UpdateStockRequest;
 import com.flavory.dishservice.dto.response.ApiResponse;
 import com.flavory.dishservice.dto.response.DishResponse;
 import com.flavory.dishservice.entity.Dish;
@@ -163,5 +164,16 @@ public class DishController {
 
         Page<DishResponse> dishes = dishService.searchDishes(criteria, pageable);
         return ResponseEntity.ok(ApiResponse.success(dishes));
+    }
+
+    @PatchMapping("/{dishId}/stock")
+    public ResponseEntity<ApiResponse<DishResponse>> updateStock(
+            @PathVariable Long dishId,
+            @Valid @RequestBody UpdateStockRequest request,
+            Authentication authentication) {
+
+        String cookId = jwtService.extractAuth0Id(authentication);
+        DishResponse dish = dishService.updateStock(dishId, request, cookId);
+        return ResponseEntity.ok(ApiResponse.success("Stan magazynowy zaktualizowany", dish));
     }
 }

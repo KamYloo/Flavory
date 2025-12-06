@@ -3,6 +3,7 @@ package com.flavory.dishservice.service;
 import com.flavory.dishservice.dto.request.CreateDishRequest;
 import com.flavory.dishservice.dto.request.DishSearchCriteria;
 import com.flavory.dishservice.dto.request.UpdateDishRequest;
+import com.flavory.dishservice.dto.request.UpdateStockRequest;
 import com.flavory.dishservice.dto.response.DishResponse;
 import com.flavory.dishservice.entity.Dish;
 import org.springframework.data.domain.Page;
@@ -22,4 +23,5 @@ public interface DishService {
     Page<DishResponse> getAllAvailableDishes(Pageable pageable);
     Page<DishResponse> getDishesByCategory(Dish.DishCategory category, Pageable pageable);
     Page<DishResponse> searchDishes(DishSearchCriteria criteria, Pageable pageable);
+    DishResponse updateStock(Long dishId, UpdateStockRequest request, String cookId);
 }

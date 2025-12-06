@@ -3,6 +3,7 @@ package com.flavory.dishservice.service.impl;
 import com.flavory.dishservice.dto.request.CreateDishRequest;
 import com.flavory.dishservice.dto.request.DishSearchCriteria;
 import com.flavory.dishservice.dto.request.UpdateDishRequest;
+import com.flavory.dishservice.dto.request.UpdateStockRequest;
 import com.flavory.dishservice.dto.response.DishResponse;
 import com.flavory.dishservice.entity.Dish;
 import com.flavory.dishservice.exception.BusinessValidationException;
@@ -150,6 +151,30 @@ public class DishServiceImpl implements DishService {
 
         return dishRepository.findAll(spec, pageable)
                 .map(dishMapper::toResponse);
+    }
+
+    @Override
+    @Transactional
+    public DishResponse updateStock(Long dishId, UpdateStockRequest request, String cookId) {
+        Dish dish = dishRepository.findByIdAndCookId(dishId, cookId)
+                .orElseThrow(() -> new DishNotFoundException(dishId));
+
+        boolean wasAvailable = dish.getAvailable();
+        dish.setCurrentStock(request.getCurrentStock());
+
+        if (request.getMaxDailyStock() != null) {
+            dish.setMaxDailyStock(request.getMaxDailyStock());
+        }
+
+        if (request.getCurrentStock() > 0 && dish.getIsActive()) {
+            dish.setAvailable(true);
+        } else if (request.getCurrentStock() == 0) {
+            dish.setAvailable(false);
+        }
+
+        Dish updatedDish = dishRepository.save(dish);
+
+        return dishMapper.toResponse(updatedDish);
     }
 
     private void validateDishCreation(CreateDishRequest request, String cookId) {
