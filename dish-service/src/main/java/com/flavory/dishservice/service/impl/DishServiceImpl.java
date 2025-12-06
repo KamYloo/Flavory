@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -175,6 +176,23 @@ public class DishServiceImpl implements DishService {
         Dish updatedDish = dishRepository.save(dish);
 
         return dishMapper.toResponse(updatedDish);
+    }
+
+    @Override
+    @Transactional
+    public void deleteDish(Long dishId, String cookId) {
+        Dish dish = dishRepository.findByIdAndCookId(dishId, cookId)
+                .orElseThrow(() -> new DishNotFoundException(dishId));
+
+        if (dish.getImages() != null && !dish.getImages().isEmpty()) {
+            fileStorageService.deleteFiles(dish.getImages());
+            dish.setImages(new ArrayList<>());
+        }
+
+        dish.setIsActive(false);
+        dish.setAvailable(false);
+        dish.setDeactivationReason("Usunięte przez kucharza");
+        dishRepository.save(dish);
     }
 
     private void validateDishCreation(CreateDishRequest request, String cookId) {

@@ -176,4 +176,14 @@ public class DishController {
         DishResponse dish = dishService.updateStock(dishId, request, cookId);
         return ResponseEntity.ok(ApiResponse.success("Stan magazynowy zaktualizowany", dish));
     }
+
+    @DeleteMapping("/{dishId}")
+    public ResponseEntity<ApiResponse<Long>> deleteDish(
+            @PathVariable Long dishId,
+            Authentication authentication) {
+
+        String cookId = jwtService.extractAuth0Id(authentication);
+        dishService.deleteDish(dishId, cookId);
+        return ResponseEntity.ok(ApiResponse.success("Danie zostało usunięte", dishId));
+    }
 }
