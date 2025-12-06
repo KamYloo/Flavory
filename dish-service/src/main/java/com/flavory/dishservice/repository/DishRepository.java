@@ -38,5 +38,7 @@ public interface DishRepository extends JpaRepository<Dish, Long>, JpaSpecificat
             "AND d.currentStock > 0 AND d.totalRatings >= 5 " +
             "ORDER BY d.averageRating DESC, d.totalRatings DESC")
     Page<Dish> findTopRatedDishes(Pageable pageable);
+
+    boolean existsByCookIdAndNameAndIdNot(String cookId, String name, Long id);
 }
 

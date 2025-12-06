@@ -2,6 +2,7 @@ package com.flavory.dishservice.service.impl;
 
 import com.flavory.dishservice.dto.request.CreateDishRequest;
 import com.flavory.dishservice.dto.request.DishSearchCriteria;
+import com.flavory.dishservice.dto.request.UpdateDishRequest;
 import com.flavory.dishservice.dto.response.DishResponse;
 import com.flavory.dishservice.entity.Dish;
 import com.flavory.dishservice.exception.BusinessValidationException;
@@ -10,6 +11,7 @@ import com.flavory.dishservice.exception.MaxDishesLimitException;
 import com.flavory.dishservice.mapper.DishMapper;
 import com.flavory.dishservice.repository.DishRepository;
 import com.flavory.dishservice.service.DishService;
+import com.flavory.dishservice.service.FileStorageService;
 import com.flavory.dishservice.specification.DishSpecification;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -18,6 +20,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -26,6 +29,7 @@ import java.util.List;
 public class DishServiceImpl implements DishService {
     private final DishRepository dishRepository;
     private final DishMapper dishMapper;
+    private final FileStorageService fileStorageService;
 
     @Value("${app.business.max-dishes-per-cook:50}")
     private Integer maxDishesPerCook;
@@ -41,6 +45,34 @@ public class DishServiceImpl implements DishService {
 
         Dish savedDish = dishRepository.save(dish);
         return dishMapper.toResponse(savedDish);
+    }
+
+    @Override
+    @Transactional
+    public DishResponse updateDish(Long dishId, UpdateDishRequest request, String cookId, List<MultipartFile> newImages) {
+        Dish dish = dishRepository.findByIdAndCookId(dishId, cookId)
+                .orElseThrow(() -> new DishNotFoundException(dishId));
+
+        if (request.getName() != null && !request.getName().equals(dish.getName())) {
+            if (dishRepository.existsByCookIdAndNameAndIdNot(cookId, request.getName(), dishId)) {
+                throw new BusinessValidationException(
+                        "name",
+                        "Danie o tej nazwie już istnieje"
+                );
+            }
+        }
+
+        dishMapper.updateEntityFromRequest(request, dish);
+
+        if (newImages != null && !newImages.isEmpty()) {
+            List<String> oldImageUrls = dish.getImages();
+            List<String> newImageUrls = fileStorageService.updateFiles(newImages, oldImageUrls);
+            dish.setImages(newImageUrls);
+        }
+
+        Dish updatedDish = dishRepository.save(dish);
+
+        return dishMapper.toResponse(updatedDish);
     }
 
     @Override

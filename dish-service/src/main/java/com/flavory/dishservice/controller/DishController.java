@@ -2,6 +2,7 @@ package com.flavory.dishservice.controller;
 
 import com.flavory.dishservice.dto.request.CreateDishRequest;
 import com.flavory.dishservice.dto.request.DishSearchCriteria;
+import com.flavory.dishservice.dto.request.UpdateDishRequest;
 import com.flavory.dishservice.dto.response.ApiResponse;
 import com.flavory.dishservice.dto.response.DishResponse;
 import com.flavory.dishservice.entity.Dish;
@@ -45,6 +46,18 @@ public class DishController {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(ApiResponse.success("Danie zostało utworzone pomyślnie", dish));
+    }
+
+    @PutMapping("/{dishId}")
+    public ResponseEntity<ApiResponse<DishResponse>> updateDish(
+            @PathVariable Long dishId,
+            @Valid @ModelAttribute UpdateDishRequest request,
+            @RequestParam(value = "images", required = false) List<MultipartFile> images,
+            Authentication authentication) {
+
+        String cookId = jwtService.extractAuth0Id(authentication);
+        DishResponse dish = dishService.updateDish(dishId, request, cookId, images);
+        return ResponseEntity.ok(ApiResponse.success("Danie zostało zaktualizowane", dish));
     }
 
     @GetMapping("/{dishId}")
