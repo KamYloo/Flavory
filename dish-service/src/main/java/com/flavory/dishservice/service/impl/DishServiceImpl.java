@@ -6,9 +6,7 @@ import com.flavory.dishservice.dto.request.UpdateDishRequest;
 import com.flavory.dishservice.dto.request.UpdateStockRequest;
 import com.flavory.dishservice.dto.response.DishResponse;
 import com.flavory.dishservice.entity.Dish;
-import com.flavory.dishservice.exception.BusinessValidationException;
-import com.flavory.dishservice.exception.DishNotFoundException;
-import com.flavory.dishservice.exception.MaxDishesLimitException;
+import com.flavory.dishservice.exception.*;
 import com.flavory.dishservice.mapper.DishMapper;
 import com.flavory.dishservice.repository.DishRepository;
 import com.flavory.dishservice.service.DishService;
@@ -176,6 +174,24 @@ public class DishServiceImpl implements DishService {
         Dish updatedDish = dishRepository.save(dish);
 
         return dishMapper.toResponse(updatedDish);
+    }
+
+    @Override
+    @Transactional
+    public void decreaseStock(Long dishId, Integer quantity) {
+        Dish dish = dishRepository.findById(dishId)
+                .orElseThrow(() -> new DishNotFoundException(dishId));
+
+        if (!dish.canBeOrdered()) {
+            throw new DishNotAvailableException(dishId);
+        }
+
+        if (dish.getCurrentStock() < quantity) {
+            throw new InsufficientStockException(dishId, dish.getCurrentStock(), quantity);
+        }
+
+        dish.decreaseStock(quantity);
+        dishRepository.save(dish);
     }
 
     @Override
