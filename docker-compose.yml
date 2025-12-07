@@ -40,6 +40,28 @@ services:
       start_period: 90s
     restart: unless-stopped
 
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: flavory-rabbitmq
+    hostname: rabbitmq
+    ports:
+      - "${RABBITMQ_PORT:-5672}:5672"
+      - "${RABBITMQ_MANAGEMENT_PORT:-15672}:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: "${RABBITMQ_USER:-guest}"
+      RABBITMQ_DEFAULT_PASS: "${RABBITMQ_PASSWORD:-guest}"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - flavory-net
+    healthcheck:
+      test: [ "CMD", "rabbitmq-diagnostics", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+
   user-db:
     image: postgres:15
     container_name: user-db
@@ -96,10 +118,16 @@ services:
 #      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_AUDIENCE: ${AUTH0_AUDIENCE}
 #      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka-server:8761/eureka/"
 #      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
+#      SPRING_RABBITMQ_HOST: rabbitmq
+#      SPRING_RABBITMQ_PORT: 5672
+#      SPRING_RABBITMQ_USERNAME: "${RABBITMQ_USER:-guest}"
+#      SPRING_RABBITMQ_PASSWORD: "${RABBITMQ_PASSWORD:-guest}"
 #    depends_on:
 #      user-db:
 #        condition: service_healthy
 #      eureka-server:
+#        condition: service_healthy
+#      rabbitmq:
 #        condition: service_healthy
 #    volumes:
 #      - uploads:/uploads
@@ -112,7 +140,7 @@ services:
 #      retries: 5
 #      start_period: 90s
 #    restart: unless-stopped
-
+#
 #  dish-service:
 #    container_name: dish-service
 #    build:
@@ -129,6 +157,10 @@ services:
 #      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_AUDIENCE: ${AUTH0_AUDIENCE}
 #      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka-server:8761/eureka/"
 #      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
+#      SPRING_RABBITMQ_HOST: rabbitmq
+#      SPRING_RABBITMQ_PORT: 5672
+#      SPRING_RABBITMQ_USERNAME: "${RABBITMQ_USER:-guest}"
+#      SPRING_RABBITMQ_PASSWORD: "${RABBITMQ_PASSWORD:-guest}"
 #    depends_on:
 #      dish-db:
 #        condition: service_healthy
@@ -152,6 +184,7 @@ volumes:
   user_db_data:
   dish_db_data:
   uploads:
+  rabbitmq_data:
 
 networks:
   flavory-net:
