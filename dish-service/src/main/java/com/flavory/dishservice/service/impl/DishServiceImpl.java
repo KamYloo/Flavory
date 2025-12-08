@@ -196,6 +196,18 @@ public class DishServiceImpl implements DishService {
 
     @Override
     @Transactional
+    public DishResponse toggleAvailability(Long dishId, String cookId) {
+        Dish dish = dishRepository.findByIdAndCookId(dishId, cookId)
+                .orElseThrow(() -> new DishNotFoundException(dishId));
+
+        dish.setAvailable(!dish.getAvailable());
+        Dish updatedDish = dishRepository.save(dish);
+
+        return dishMapper.toResponse(updatedDish);
+    }
+
+    @Override
+    @Transactional
     public void deleteDish(Long dishId, String cookId) {
         Dish dish = dishRepository.findByIdAndCookId(dishId, cookId)
                 .orElseThrow(() -> new DishNotFoundException(dishId));

@@ -177,6 +177,16 @@ public class DishController {
         return ResponseEntity.ok(ApiResponse.success("Stan magazynowy zaktualizowany", dish));
     }
 
+    @PatchMapping("/{dishId}/toggle-availability")
+    public ResponseEntity<ApiResponse<DishResponse>> toggleAvailability(
+            @PathVariable Long dishId,
+            Authentication authentication) {
+
+        String cookId = jwtService.extractAuth0Id(authentication);
+        DishResponse dish = dishService.toggleAvailability(dishId, cookId);
+        return ResponseEntity.ok(ApiResponse.success("Dostępność zmieniona", dish));
+    }
+
     @DeleteMapping("/{dishId}")
     public ResponseEntity<ApiResponse<Long>> deleteDish(
             @PathVariable Long dishId,
