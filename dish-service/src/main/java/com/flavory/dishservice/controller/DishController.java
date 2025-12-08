@@ -6,6 +6,7 @@ import com.flavory.dishservice.dto.request.UpdateDishRequest;
 import com.flavory.dishservice.dto.request.UpdateStockRequest;
 import com.flavory.dishservice.dto.response.ApiResponse;
 import com.flavory.dishservice.dto.response.DishResponse;
+import com.flavory.dishservice.dto.response.DishStatsResponse;
 import com.flavory.dishservice.entity.Dish;
 import com.flavory.dishservice.security.JwtService;
 import com.flavory.dishservice.service.DishService;
@@ -131,6 +132,15 @@ public class DishController {
 
         Page<DishResponse> dishes = dishService.getAllAvailableDishes(pageable);
         return ResponseEntity.ok(ApiResponse.success(dishes));
+    }
+
+    @GetMapping("/stats")
+    public ResponseEntity<ApiResponse<DishStatsResponse>> getMyStats(
+            Authentication authentication) {
+
+        String cookId = jwtService.extractAuth0Id(authentication);
+        DishStatsResponse stats = dishService.getCookStatistics(cookId);
+        return ResponseEntity.ok(ApiResponse.success(stats));
     }
 
     @GetMapping("/search")

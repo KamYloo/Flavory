@@ -5,6 +5,7 @@ import com.flavory.dishservice.dto.request.DishSearchCriteria;
 import com.flavory.dishservice.dto.request.UpdateDishRequest;
 import com.flavory.dishservice.dto.request.UpdateStockRequest;
 import com.flavory.dishservice.dto.response.DishResponse;
+import com.flavory.dishservice.dto.response.DishStatsResponse;
 import com.flavory.dishservice.entity.Dish;
 import com.flavory.dishservice.exception.*;
 import com.flavory.dishservice.mapper.DishMapper;
@@ -221,6 +222,24 @@ public class DishServiceImpl implements DishService {
         dish.setAvailable(false);
         dish.setDeactivationReason("Usunięte przez kucharza");
         dishRepository.save(dish);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public DishStatsResponse getCookStatistics(String cookId) {
+        return DishStatsResponse.builder()
+                .totalDishes(dishRepository.countTotalDishes(cookId))
+                .activeDishes(dishRepository.countActiveDishesForCook(cookId))
+                .availableDishes(dishRepository.countAvailableDishes(cookId))
+                .outOfStockDishes(
+                        dishRepository.countTotalDishes(cookId) -
+                                dishRepository.countAvailableDishes(cookId)
+                )
+                .totalRevenue(dishRepository.getTotalRevenue(cookId))
+                .totalOrders(dishRepository.getTotalOrders(cookId).intValue())
+                .averageRating(dishRepository.getAverageRating(cookId))
+                .averagePrice(dishRepository.getAveragePrice(cookId))
+                .build();
     }
 
     private void validateDishCreation(CreateDishRequest request, String cookId) {

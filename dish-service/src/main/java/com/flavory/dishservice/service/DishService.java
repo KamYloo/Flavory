@@ -5,6 +5,7 @@ import com.flavory.dishservice.dto.request.DishSearchCriteria;
 import com.flavory.dishservice.dto.request.UpdateDishRequest;
 import com.flavory.dishservice.dto.request.UpdateStockRequest;
 import com.flavory.dishservice.dto.response.DishResponse;
+import com.flavory.dishservice.dto.response.DishStatsResponse;
 import com.flavory.dishservice.entity.Dish;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -27,4 +28,5 @@ public interface DishService {
     void decreaseStock(Long dishId, Integer quantity);
     DishResponse toggleAvailability(Long dishId, String cookId);
     void deleteDish(Long dishId, String cookId);
+    DishStatsResponse getCookStatistics(String cookId);
 }

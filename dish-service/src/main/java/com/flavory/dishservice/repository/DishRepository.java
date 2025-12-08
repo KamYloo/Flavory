@@ -9,14 +9,13 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.util.Optional;
 
 @Repository
 public interface DishRepository extends JpaRepository<Dish, Long>, JpaSpecificationExecutor<Dish> {
-    @Query("SELECT COUNT(d) FROM Dish d WHERE d.cookId = :cookId AND d.isActive = true")
-    Long countActiveDishesForCook(@Param("cookId") String cookId);
-
     boolean existsByCookIdAndName(String cookId, String name);
+    boolean existsByCookIdAndNameAndIdNot(String cookId, String name, Long id);
 
     Optional<Dish> findByIdAndIsActiveTrue(Long id);
     Optional<Dish> findByIdAndCookId(Long id, String cookId);
@@ -39,6 +38,28 @@ public interface DishRepository extends JpaRepository<Dish, Long>, JpaSpecificat
             "ORDER BY d.averageRating DESC, d.totalRatings DESC")
     Page<Dish> findTopRatedDishes(Pageable pageable);
 
-    boolean existsByCookIdAndNameAndIdNot(String cookId, String name, Long id);
+    @Query("SELECT COUNT(d) FROM Dish d WHERE d.cookId = :cookId AND d.isActive = true")
+    Long countActiveDishesForCook(@Param("cookId") String cookId);
+
+    @Query("SELECT COUNT(d) FROM Dish d WHERE d.cookId = :cookId AND d.isActive = true")
+    Long countTotalDishes(@Param("cookId") String cookId);
+
+    @Query("SELECT COUNT(d) FROM Dish d WHERE d.cookId = :cookId " +
+            "AND d.isActive = true AND d.available = true AND d.currentStock > 0")
+    Long countAvailableDishes(@Param("cookId") String cookId);
+
+    @Query("SELECT COALESCE(SUM(d.totalRevenue), 0) FROM Dish d WHERE d.cookId = :cookId")
+    BigDecimal getTotalRevenue(@Param("cookId") String cookId);
+
+    @Query("SELECT COALESCE(SUM(d.totalOrders), 0) FROM Dish d WHERE d.cookId = :cookId")
+    Long getTotalOrders(@Param("cookId") String cookId);
+
+    @Query("SELECT COALESCE(AVG(d.averageRating), 0) FROM Dish d " +
+            "WHERE d.cookId = :cookId AND d.totalRatings > 0")
+    BigDecimal getAverageRating(@Param("cookId") String cookId);
+
+    @Query("SELECT COALESCE(AVG(d.price), 0) FROM Dish d " +
+            "WHERE d.cookId = :cookId AND d.isActive = true")
+    BigDecimal getAveragePrice(@Param("cookId") String cookId);
 }
 
