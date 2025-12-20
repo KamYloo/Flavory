@@ -47,4 +47,16 @@ public class DishEventPublisher {
                 event
         );
     }
+
+    public void publishDishAvailabilityChanged(DishAvailabilityChangedEvent event) {
+        if (event.getEventId() == null) {
+            event.setEventId(UUID.randomUUID().toString());
+        }
+
+        rabbitTemplate.convertAndSend(
+                RabbitMQConfig.DISH_EXCHANGE,
+                RabbitMQConfig.DISH_AVAILABILITY_CHANGED_ROUTING_KEY,
+                event
+        );
+    }
 }

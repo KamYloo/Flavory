@@ -7,6 +7,7 @@ import com.flavory.dishservice.dto.request.UpdateStockRequest;
 import com.flavory.dishservice.dto.response.DishResponse;
 import com.flavory.dishservice.dto.response.DishStatsResponse;
 import com.flavory.dishservice.entity.Dish;
+import com.flavory.dishservice.event.outbound.DishAvailabilityChangedEvent;
 import com.flavory.dishservice.event.outbound.DishCreatedEvent;
 import com.flavory.dishservice.event.outbound.DishDeletedEvent;
 import com.flavory.dishservice.event.outbound.DishUpdatedEvent;
@@ -181,6 +182,10 @@ public class DishServiceImpl implements DishService {
 
         Dish updatedDish = dishRepository.save(dish);
 
+        if (wasAvailable != dish.getAvailable()) {
+            publishDishAvailabilityChangedEvent(updatedDish);
+        }
+
         return dishMapper.toResponse(updatedDish);
     }
 
@@ -200,6 +205,10 @@ public class DishServiceImpl implements DishService {
 
         dish.decreaseStock(quantity);
         dishRepository.save(dish);
+
+        if (!dish.getAvailable()) {
+            publishDishAvailabilityChangedEvent(dish);
+        }
     }
 
     @Override
@@ -210,6 +219,8 @@ public class DishServiceImpl implements DishService {
 
         dish.setAvailable(!dish.getAvailable());
         Dish updatedDish = dishRepository.save(dish);
+
+        publishDishAvailabilityChangedEvent(updatedDish);
 
         return dishMapper.toResponse(updatedDish);
     }
@@ -302,5 +313,18 @@ public class DishServiceImpl implements DishService {
                 .build();
 
         eventPublisher.publishDishDeleted(event);
+    }
+
+    private void publishDishAvailabilityChangedEvent(Dish dish) {
+        DishAvailabilityChangedEvent event = DishAvailabilityChangedEvent.builder()
+                .dishId(dish.getId())
+                .cookId(dish.getCookId())
+                .available(dish.getAvailable())
+                .currentStock(dish.getCurrentStock())
+                .reason(dish.getCurrentStock() == 0 ? "OUT_OF_STOCK" : "MANUAL_TOGGLE")
+                .changedAt(LocalDateTime.now())
+                .build();
+
+        eventPublisher.publishDishAvailabilityChanged(event);
     }
 }
