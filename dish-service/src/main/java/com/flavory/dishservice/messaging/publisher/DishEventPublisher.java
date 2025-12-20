@@ -22,6 +22,29 @@ public class DishEventPublisher {
                 RabbitMQConfig.DISH_CREATED_ROUTING_KEY,
                 event
         );
+    }
 
+    public void publishDishUpdated(DishUpdatedEvent event) {
+        if (event.getEventId() == null) {
+            event.setEventId(UUID.randomUUID().toString());
+        }
+
+        rabbitTemplate.convertAndSend(
+                RabbitMQConfig.DISH_EXCHANGE,
+                RabbitMQConfig.DISH_UPDATED_ROUTING_KEY,
+                event
+        );
+    }
+
+    public void publishDishDeleted(DishDeletedEvent event) {
+        if (event.getEventId() == null) {
+            event.setEventId(UUID.randomUUID().toString());
+        }
+
+        rabbitTemplate.convertAndSend(
+                RabbitMQConfig.DISH_EXCHANGE,
+                RabbitMQConfig.DISH_DELETED_ROUTING_KEY,
+                event
+        );
     }
 }

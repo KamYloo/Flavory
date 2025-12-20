@@ -8,6 +8,8 @@ import com.flavory.dishservice.dto.response.DishResponse;
 import com.flavory.dishservice.dto.response.DishStatsResponse;
 import com.flavory.dishservice.entity.Dish;
 import com.flavory.dishservice.event.outbound.DishCreatedEvent;
+import com.flavory.dishservice.event.outbound.DishDeletedEvent;
+import com.flavory.dishservice.event.outbound.DishUpdatedEvent;
 import com.flavory.dishservice.exception.*;
 import com.flavory.dishservice.mapper.DishMapper;
 import com.flavory.dishservice.messaging.publisher.DishEventPublisher;
@@ -24,6 +26,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -76,7 +79,7 @@ public class DishServiceImpl implements DishService {
         }
 
         Dish updatedDish = dishRepository.save(dish);
-
+        publishDishUpdatedEvent(updatedDish);
         return dishMapper.toResponse(updatedDish);
     }
 
@@ -226,6 +229,7 @@ public class DishServiceImpl implements DishService {
         dish.setAvailable(false);
         dish.setDeactivationReason("Usunięte przez kucharza");
         dishRepository.save(dish);
+        publishDishDeletedEvent(dish);
     }
 
     @Override
@@ -274,5 +278,29 @@ public class DishServiceImpl implements DishService {
                 .build();
 
         eventPublisher.publishDishCreated(event);
+    }
+
+    private void publishDishUpdatedEvent(Dish dish) {
+        DishUpdatedEvent event = DishUpdatedEvent.builder()
+                .dishId(dish.getId())
+                .cookId(dish.getCookId())
+                .dishName(dish.getName())
+                .price(dish.getPrice())
+                .available(dish.getAvailable())
+                .currentStock(dish.getCurrentStock())
+                .updatedAt(dish.getUpdatedAt())
+                .build();
+
+        eventPublisher.publishDishUpdated(event);
+    }
+
+    private void publishDishDeletedEvent(Dish dish) {
+        DishDeletedEvent event = DishDeletedEvent.builder()
+                .dishId(dish.getId())
+                .cookId(dish.getCookId())
+                .deletedAt(LocalDateTime.now())
+                .build();
+
+        eventPublisher.publishDishDeleted(event);
     }
 }
