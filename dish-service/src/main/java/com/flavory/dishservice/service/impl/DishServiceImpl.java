@@ -7,8 +7,10 @@ import com.flavory.dishservice.dto.request.UpdateStockRequest;
 import com.flavory.dishservice.dto.response.DishResponse;
 import com.flavory.dishservice.dto.response.DishStatsResponse;
 import com.flavory.dishservice.entity.Dish;
+import com.flavory.dishservice.event.outbound.DishCreatedEvent;
 import com.flavory.dishservice.exception.*;
 import com.flavory.dishservice.mapper.DishMapper;
+import com.flavory.dishservice.messaging.publisher.DishEventPublisher;
 import com.flavory.dishservice.repository.DishRepository;
 import com.flavory.dishservice.service.DishService;
 import com.flavory.dishservice.service.FileStorageService;
@@ -31,6 +33,7 @@ public class DishServiceImpl implements DishService {
     private final DishRepository dishRepository;
     private final DishMapper dishMapper;
     private final FileStorageService fileStorageService;
+    private final DishEventPublisher eventPublisher;
 
     @Value("${app.business.max-dishes-per-cook:50}")
     private Integer maxDishesPerCook;
@@ -45,6 +48,7 @@ public class DishServiceImpl implements DishService {
         dish.setImages(imageUrls);
 
         Dish savedDish = dishRepository.save(dish);
+        publishDishCreatedEvent(savedDish);
         return dishMapper.toResponse(savedDish);
     }
 
@@ -255,5 +259,20 @@ public class DishServiceImpl implements DishService {
                     "Danie o tej nazwie już istnieje w Twoim menu"
             );
         }
+    }
+
+    private void publishDishCreatedEvent(Dish dish) {
+        DishCreatedEvent event = DishCreatedEvent.builder()
+                .dishId(dish.getId())
+                .cookId(dish.getCookId())
+                .dishName(dish.getName())
+                .price(dish.getPrice())
+                .category(dish.getCategory().name())
+                .available(dish.getAvailable())
+                .currentStock(dish.getCurrentStock())
+                .createdAt(dish.getCreatedAt())
+                .build();
+
+        eventPublisher.publishDishCreated(event);
     }
 }
