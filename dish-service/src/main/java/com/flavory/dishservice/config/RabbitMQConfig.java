@@ -19,10 +19,16 @@ public class RabbitMQConfig {
     public static final String DISH_DELETED_QUEUE = "dish.deleted.queue";
     public static final String DISH_AVAILABILITY_CHANGED_QUEUE = "dish.availability.changed.queue";
 
+    public static final String ORDER_PLACED_QUEUE = "dish.order.placed.queue";
+    public static final String ORDER_COMPLETED_QUEUE = "dish.order.completed.queue";
+
     public static final String DISH_CREATED_ROUTING_KEY = "dish.created";
     public static final String DISH_UPDATED_ROUTING_KEY = "dish.updated";
     public static final String DISH_DELETED_ROUTING_KEY = "dish.deleted";
     public static final String DISH_AVAILABILITY_CHANGED_ROUTING_KEY = "dish.availability.changed";
+
+    public static final String ORDER_PLACED_ROUTING_KEY = "order.placed";
+    public static final String ORDER_COMPLETED_ROUTING_KEY = "order.completed";
 
     public static final String DLX_EXCHANGE = "dlx.exchange";
 
@@ -95,6 +101,25 @@ public class RabbitMQConfig {
     }
 
     @Bean
+    public Queue orderPlacedQueue() {
+        return QueueBuilder
+                .durable(ORDER_PLACED_QUEUE)
+                .withArgument("x-dead-letter-exchange", DLX_EXCHANGE)
+                .withArgument("x-dead-letter-routing-key", "dlq.order.placed")
+                .ttl(3600000)
+                .build();
+    }
+
+    @Bean
+    public Queue orderCompletedQueue() {
+        return QueueBuilder
+                .durable(ORDER_COMPLETED_QUEUE)
+                .withArgument("x-dead-letter-exchange", DLX_EXCHANGE)
+                .withArgument("x-dead-letter-routing-key", "dlq.order.completed")
+                .build();
+    }
+
+    @Bean
     public Binding dishCreatedBinding(Queue dishCreatedQueue, TopicExchange dishExchange) {
         return BindingBuilder
                 .bind(dishCreatedQueue)
@@ -126,6 +151,22 @@ public class RabbitMQConfig {
                 .bind(dishAvailabilityChangedQueue)
                 .to(dishExchange)
                 .with(DISH_AVAILABILITY_CHANGED_ROUTING_KEY);
+    }
+
+    @Bean
+    public Binding orderPlacedBinding(Queue orderPlacedQueue, TopicExchange orderExchange) {
+        return BindingBuilder
+                .bind(orderPlacedQueue)
+                .to(orderExchange)
+                .with(ORDER_PLACED_ROUTING_KEY);
+    }
+
+    @Bean
+    public Binding orderCompletedBinding(Queue orderCompletedQueue, TopicExchange orderExchange) {
+        return BindingBuilder
+                .bind(orderCompletedQueue)
+                .to(orderExchange)
+                .with(ORDER_COMPLETED_ROUTING_KEY);
     }
 
     @Bean
