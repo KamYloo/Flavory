@@ -148,8 +148,7 @@ public class Dish {
         }
     }
 
-    public void recordOrder(Integer quantity, BigDecimal orderAmount) {
-        decreaseStock(quantity);
+    public void updateOrderStats(BigDecimal orderAmount) {
         this.totalOrders += 1;
         this.totalRevenue = this.totalRevenue.add(orderAmount);
     }

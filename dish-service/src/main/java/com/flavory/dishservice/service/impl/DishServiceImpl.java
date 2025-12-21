@@ -27,6 +27,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -190,7 +191,6 @@ public class DishServiceImpl implements DishService {
     }
 
     @Override
-    @Transactional
     public void decreaseStock(Long dishId, Integer quantity) {
         Dish dish = dishRepository.findById(dishId)
                 .orElseThrow(() -> new DishNotFoundException(dishId));
@@ -259,6 +259,23 @@ public class DishServiceImpl implements DishService {
                 .averageRating(dishRepository.getAverageRating(cookId))
                 .averagePrice(dishRepository.getAveragePrice(cookId))
                 .build();
+    }
+
+    @Override
+    public void updateOrderStats(Long dishId, BigDecimal itemTotal) {
+        Dish dish = dishRepository.findById(dishId)
+                .orElseThrow(() -> new DishNotFoundException(dishId));
+
+        dish.updateOrderStats(itemTotal);
+        dishRepository.save(dish);
+    }
+
+    @Override
+    public void updateDishRating(Long dishId, BigDecimal rating) {
+        Dish dish = dishRepository.findById(dishId)
+                .orElseThrow(() -> new DishNotFoundException(dishId));
+        dish.updateRating(rating);
+        dishRepository.save(dish);
     }
 
     private void validateDishCreation(CreateDishRequest request, String cookId) {
