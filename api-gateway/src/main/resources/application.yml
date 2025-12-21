@@ -17,6 +17,10 @@ spring:
               predicates:
                 - Path=/api/dishes/**
 
+            - id: order-service-route
+              uri: lb://order-service
+              predicates:
+                - Path=/api/orders/**
           discovery:
             locator:
               enabled: false

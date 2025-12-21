@@ -102,6 +102,26 @@ services:
       timeout: 5s
       retries: 5
 
+  order-db:
+    image: postgres:15
+    container_name: order-db
+    environment:
+      POSTGRES_DB: "${ORDER_POSTGRES_DB}"
+      POSTGRES_USER: "${ORDER_POSTGRES_USER}"
+      POSTGRES_PASSWORD: "${ORDER_POSTGRES_PASSWORD}"
+    ports:
+      - "${ORDER_POSTGRES_HOST_PORT:-5434}:5432"
+    volumes:
+      - order_db_data:/var/lib/postgresql/data
+    networks:
+      - flavory-net
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${ORDER_POSTGRES_USER} -d ${ORDER_POSTGRES_DB}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 #  user-service:
 #    container_name: user-service
 #    build:
@@ -179,10 +199,50 @@ services:
 #      retries: 5
 #      start_period: 90s
 #    restart: unless-stopped
+#
+#  order-service:
+#    container_name: order-service
+#    build:
+#      context: ./order-service
+#    env_file:
+#      - .env
+#    ports:
+#      - "${ORDER_SERVICE_HOST_PORT:-8083}:8080"
+#    environment:
+#      SPRING_DATASOURCE_URL: "jdbc:postgresql://order-db:5432/${ORDER_POSTGRES_DB}"
+#      SPRING_DATASOURCE_USERNAME: "${ORDER_POSTGRES_USER}"
+#      SPRING_DATASOURCE_PASSWORD: "${ORDER_POSTGRES_PASSWORD}"
+#      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: ${AUTH0_ISSUER_URI}
+#      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_AUDIENCE: ${AUTH0_AUDIENCE}
+#      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka-server:8761/eureka/"
+#      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
+#      SPRING_RABBITMQ_HOST: rabbitmq
+#      SPRING_RABBITMQ_PORT: 5672
+#      SPRING_RABBITMQ_USERNAME: "${RABBITMQ_USER:-guest}"
+#      SPRING_RABBITMQ_PASSWORD: "${RABBITMQ_PASSWORD:-guest}"
+#    depends_on:
+#      order-db:
+#        condition: service_healthy
+#      eureka-server:
+#        condition: service_healthy
+#      rabbitmq:
+#        condition: service_healthy
+#    volumes:
+#      - uploads:/uploads
+#    networks:
+#      - flavory-net
+#    healthcheck:
+#      test: [ "CMD", "curl", "-f", "http://localhost:8080/actuator/health" ]
+#      interval: 15s
+#      timeout: 5s
+#      retries: 5
+#      start_period: 90s
+#    restart: unless-stopped
 
 volumes:
   user_db_data:
   dish_db_data:
+  order_db_data:
   uploads:
   rabbitmq_data:
 
