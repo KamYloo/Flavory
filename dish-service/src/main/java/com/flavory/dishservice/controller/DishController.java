@@ -5,6 +5,7 @@ import com.flavory.dishservice.dto.request.DishSearchCriteria;
 import com.flavory.dishservice.dto.request.UpdateDishRequest;
 import com.flavory.dishservice.dto.request.UpdateStockRequest;
 import com.flavory.dishservice.dto.response.ApiResponse;
+import com.flavory.dishservice.dto.response.DishInternalResponse;
 import com.flavory.dishservice.dto.response.DishResponse;
 import com.flavory.dishservice.dto.response.DishStatsResponse;
 import com.flavory.dishservice.entity.Dish;
@@ -176,8 +177,8 @@ public class DishController {
         return ResponseEntity.ok(ApiResponse.success(dishes));
     }
 
-    @GetMapping("/api/dishes/batch")
-    public ResponseEntity<List<DishResponse>> getDishesByIds(@RequestParam List<Long> ids) {
+    @GetMapping("/batch")
+    public ResponseEntity<List<DishInternalResponse>> getDishesByIds(@RequestParam List<Long> ids) {
         return ResponseEntity.ok(dishService.getDishesByIds(ids));
     }
 

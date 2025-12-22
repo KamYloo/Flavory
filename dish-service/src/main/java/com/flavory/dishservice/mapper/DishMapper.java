@@ -3,6 +3,7 @@ package com.flavory.dishservice.mapper;
 import com.flavory.dishservice.dto.request.CreateDishRequest;
 import com.flavory.dishservice.dto.request.NutritionInfoRequest;
 import com.flavory.dishservice.dto.request.UpdateDishRequest;
+import com.flavory.dishservice.dto.response.DishInternalResponse;
 import com.flavory.dishservice.dto.response.DishResponse;
 import com.flavory.dishservice.dto.response.NutritionInfoResponse;
 import com.flavory.dishservice.entity.Dish;
@@ -22,6 +23,10 @@ public interface DishMapper {
     @Mapping(target = "categoryDisplayName", source = "category", qualifiedByName = "mapCategoryDisplayName")
     @Mapping(target = "allergenDisplayNames", source = "allergens", qualifiedByName = "mapAllergenDisplayNames")
     DishResponse toResponse(Dish dish);
+
+    @Mapping(target = "category", expression = "java(dish.getCategory() != null ? dish.getCategory().name() : null)")
+    @Mapping(target = "images", source = "images")
+    DishInternalResponse toInternalResponse(Dish dish);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "cookId", ignore = true)

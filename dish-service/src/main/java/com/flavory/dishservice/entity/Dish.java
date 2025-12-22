@@ -60,7 +60,7 @@ public class Dish {
     @Column(nullable = false, name = "serving_size")
     private Integer servingSize;
 
-    @ElementCollection(fetch = FetchType.LAZY)
+    @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name = "dish_images", joinColumns = @JoinColumn(name = "dish_id"))
     @Column(name = "image_url", length = 500)
     @OrderColumn(name = "image_order")

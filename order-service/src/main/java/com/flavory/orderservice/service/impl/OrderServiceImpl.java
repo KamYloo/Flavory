@@ -1,0 +1,165 @@
+package com.flavory.orderservice.service.impl;
+
+import com.flavory.orderservice.client.DishServiceClient;
+import com.flavory.orderservice.client.UserServiceClient;
+import com.flavory.orderservice.dto.request.CreateOrderRequest;
+import com.flavory.orderservice.dto.request.OrderItemRequest;
+import com.flavory.orderservice.dto.response.AddressDto;
+import com.flavory.orderservice.dto.response.DishDto;
+import com.flavory.orderservice.dto.response.OrderResponse;
+import com.flavory.orderservice.entity.DeliveryAddress;
+import com.flavory.orderservice.entity.Order;
+import com.flavory.orderservice.entity.OrderItem;
+import com.flavory.orderservice.exception.AddressNotFoundException;
+import com.flavory.orderservice.exception.DishNotAvailableException;
+import com.flavory.orderservice.mapper.OrderMapper;
+import com.flavory.orderservice.repository.OrderRepository;
+import com.flavory.orderservice.security.JwtService;
+import com.flavory.orderservice.service.OrderService;
+import com.flavory.orderservice.validator.OrderValidator;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.Authentication;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+public class OrderServiceImpl implements OrderService {
+    private final OrderRepository orderRepository;
+    private final JwtService jwtService;
+    private final OrderValidator orderValidator;
+    private final OrderMapper orderMapper;
+    private final UserServiceClient userServiceClient;
+    private final DishServiceClient dishServiceClient;
+
+    @Value("${app.business.delivery-fee}")
+    private BigDecimal deliveryFee;
+
+    @Value("${app.business.free-delivery-threshold}")
+    private BigDecimal freeDeliveryThreshold;
+
+    @Override
+    @Transactional
+    public OrderResponse createOrder(CreateOrderRequest request, Authentication authentication) {
+        orderValidator.validateOrderCreation(request.getItems());
+
+        String customerId = jwtService.extractAuth0Id(authentication);
+
+        AddressDto addressDto = userServiceClient.getDefaultAddressByAuth0Id(customerId);
+        if (addressDto == null) {
+            throw new AddressNotFoundException();
+        }
+
+        List<DishDto> dishes = fetchAndValidateDishes(request.getItems());
+        Order order = buildOrder(request, customerId, dishes, addressDto);
+        orderValidator.validateOrderAmount(order.getTotalAmount());
+
+        order = orderRepository.save(order);
+
+        return orderMapper.toResponse(order);
+    }
+
+    private List<DishDto> fetchAndValidateDishes(List<OrderItemRequest> items) {
+        List<Long> dishIds = items.stream()
+                .map(OrderItemRequest::getDishId)
+                .toList();
+
+        List<DishDto> fetchedDishes = dishServiceClient.getDishesByIds(dishIds);
+
+        if (fetchedDishes.size() != new HashSet<>(dishIds).size()) {
+            throw new DishNotAvailableException("Nie znaleziono jednego lub więcej dań");
+        }
+
+        Map<Long, DishDto> dishMap = fetchedDishes.stream()
+                .collect(Collectors.toMap(DishDto::getId, dish -> dish));
+
+        Map<Long, Integer> quantitiesPerDish = items.stream()
+                .collect(Collectors.groupingBy(
+                        OrderItemRequest::getDishId,
+                        Collectors.summingInt(OrderItemRequest::getQuantity)
+                ));
+
+        for (Map.Entry<Long, Integer> entry : quantitiesPerDish.entrySet()) {
+            Long dishId = entry.getKey();
+            Integer totalRequested = entry.getValue();
+
+            DishDto dish = dishMap.get(dishId);
+
+            orderValidator.validateDishAvailability(dish, totalRequested);
+        }
+
+        return fetchedDishes;
+    }
+
+    private Order buildOrder(CreateOrderRequest request, String customerId,
+                             List<DishDto> dishes, AddressDto addressDto) {
+        Map<Long, DishDto> dishMap = dishes.stream()
+                .collect(Collectors.toMap(DishDto::getId, dish -> dish));
+
+        Order order = Order.builder()
+                .customerId(customerId)
+                .cookId(request.getCookId())
+                .status(Order.OrderStatus.PENDING)
+                .customerNotes(request.getCustomerNotes())
+                .deliveryAddress(buildDeliveryAddress(addressDto, request))
+                .items(new ArrayList<>())
+                .build();
+
+        for (OrderItemRequest itemRequest : request.getItems()) {
+            DishDto dish = dishMap.get(itemRequest.getDishId());
+
+            String imageUrl = (dish.getImages() != null && !dish.getImages().isEmpty())
+                    ? dish.getImages().getFirst()
+                    : null;
+
+            OrderItem orderItem = OrderItem.builder()
+                    .order(order)
+                    .dishId(dish.getId())
+                    .dishName(dish.getName())
+                    .price(dish.getPrice())
+                    .quantity(itemRequest.getQuantity())
+                    .dishImageUrl(imageUrl)
+                    .build();
+
+            orderItem.calculateItemTotal();
+            order.addItem(orderItem);
+        }
+        BigDecimal tempSubtotal = order.getItems().stream()
+                .map(OrderItem::getItemTotal)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        order.setSubtotal(tempSubtotal);
+        if (tempSubtotal.compareTo(freeDeliveryThreshold) < 0) {
+            order.setDeliveryFee(deliveryFee);
+        } else {
+            order.setDeliveryFee(BigDecimal.ZERO);
+        }
+        order.calculateTotals();
+
+        order.setEstimatedDeliveryTime(LocalDateTime.now().plusMinutes(60));
+
+        return order;
+    }
+
+    private DeliveryAddress buildDeliveryAddress(AddressDto addressDto, CreateOrderRequest request) {
+        return DeliveryAddress.builder()
+                .street(addressDto.getStreet())
+                .city(addressDto.getCity())
+                .postalCode(addressDto.getPostalCode())
+                .apartmentNumber(addressDto.getApartmentNumber())
+                .phoneNumber(addressDto.getPhoneNumber())
+                .latitude(addressDto.getLatitude())
+                .longitude(addressDto.getLongitude())
+                .deliveryInstructions(request.getDeliveryInstructions())
+                .build();
+    }
+}

@@ -57,19 +57,6 @@ public class AddressController {
         return ResponseEntity.ok(ApiResponse.success(addresses));
     }
 
-    @GetMapping("/by-auth0/{auth0Id}/default")
-    public ResponseEntity<ApiResponse<AddressResponse>> getDefaultAddressByAuth0Id(
-            @PathVariable String auth0Id,
-            Authentication authentication) {
-
-        String currentAuth0Id = jwtService.extractAuth0Id(authentication);
-        if (!currentAuth0Id.equals(auth0Id)) {
-            throw new UnauthorizedAccessException();
-        }
-        AddressResponse address = addressService.getDefaultAddressByAuth0Id(auth0Id);
-        return ResponseEntity.ok(ApiResponse.success(address));
-    }
-
     @PutMapping("/{addressId}")
     public ResponseEntity<ApiResponse<AddressResponse>> updateAddress(
             @PathVariable Long userId,

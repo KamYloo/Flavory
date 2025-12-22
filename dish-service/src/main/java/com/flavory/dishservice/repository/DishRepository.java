@@ -3,6 +3,7 @@ package com.flavory.dishservice.repository;
 import com.flavory.dishservice.entity.Dish;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
@@ -39,7 +40,8 @@ public interface DishRepository extends JpaRepository<Dish, Long>, JpaSpecificat
             "ORDER BY d.averageRating DESC, d.totalRatings DESC")
     Page<Dish> findTopRatedDishes(Pageable pageable);
 
-    @Query("SELECT DISTINCT d FROM Dish d LEFT JOIN FETCH d.images WHERE d.id IN :ids")
+    @EntityGraph(attributePaths = {"images"})
+    @Query("SELECT DISTINCT d FROM Dish d WHERE d.id IN :ids")
     List<Dish> findAllByIdsWithImages(@Param("ids") List<Long> ids);
 
     @Query("SELECT COUNT(d) FROM Dish d WHERE d.cookId = :cookId AND d.isActive = true")

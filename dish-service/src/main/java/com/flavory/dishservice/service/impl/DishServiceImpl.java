@@ -4,6 +4,7 @@ import com.flavory.dishservice.dto.request.CreateDishRequest;
 import com.flavory.dishservice.dto.request.DishSearchCriteria;
 import com.flavory.dishservice.dto.request.UpdateDishRequest;
 import com.flavory.dishservice.dto.request.UpdateStockRequest;
+import com.flavory.dishservice.dto.response.DishInternalResponse;
 import com.flavory.dishservice.dto.response.DishResponse;
 import com.flavory.dishservice.dto.response.DishStatsResponse;
 import com.flavory.dishservice.entity.Dish;
@@ -165,11 +166,11 @@ public class DishServiceImpl implements DishService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<DishResponse> getDishesByIds(List<Long> ids) {
+    public List<DishInternalResponse> getDishesByIds(List<Long> ids) {
         List<Dish> dishes = dishRepository.findAllByIdsWithImages(ids);
 
         return dishes.stream()
-                .map(dishMapper::toResponse)
+                .map(dishMapper::toInternalResponse)
                 .collect(Collectors.toList());
     }
 

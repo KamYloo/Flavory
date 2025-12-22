@@ -4,6 +4,7 @@ import com.flavory.dishservice.dto.request.CreateDishRequest;
 import com.flavory.dishservice.dto.request.DishSearchCriteria;
 import com.flavory.dishservice.dto.request.UpdateDishRequest;
 import com.flavory.dishservice.dto.request.UpdateStockRequest;
+import com.flavory.dishservice.dto.response.DishInternalResponse;
 import com.flavory.dishservice.dto.response.DishResponse;
 import com.flavory.dishservice.dto.response.DishStatsResponse;
 import com.flavory.dishservice.entity.Dish;
@@ -25,7 +26,7 @@ public interface DishService {
     Page<DishResponse> getAllAvailableDishes(Pageable pageable);
     Page<DishResponse> getDishesByCategory(Dish.DishCategory category, Pageable pageable);
     Page<DishResponse> searchDishes(DishSearchCriteria criteria, Pageable pageable);
-    List<DishResponse> getDishesByIds(List<Long> ids);
+    List<DishInternalResponse> getDishesByIds(List<Long> ids);
     DishResponse updateStock(Long dishId, UpdateStockRequest request, String cookId);
     void decreaseStock(Long dishId, Integer quantity);
     DishResponse toggleAvailability(Long dishId, String cookId);
