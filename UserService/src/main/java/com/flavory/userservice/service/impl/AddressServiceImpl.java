@@ -74,6 +74,15 @@ public class AddressServiceImpl implements AddressService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public AddressResponse getDefaultAddressByAuth0Id(String auth0Id) {
+        Address address = addressRepository.findDefaultAddressByAuth0Id(auth0Id)
+                .orElseThrow(AddressNotFoundException::new);
+
+        return addressMapper.toResponse(address);
+    }
+
+    @Override
     @Transactional
     public AddressResponse updateAddress(Long userId, Long addressId, UpdateAddressRequest request, String currentAuth0Id) {
         getUserAndValidateAccess(userId, currentAuth0Id);

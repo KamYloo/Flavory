@@ -4,6 +4,7 @@ import com.flavory.userservice.dto.request.CreateAddressRequest;
 import com.flavory.userservice.dto.request.UpdateAddressRequest;
 import com.flavory.userservice.dto.response.AddressResponse;
 import com.flavory.userservice.dto.response.ApiResponse;
+import com.flavory.userservice.exception.UnauthorizedAccessException;
 import com.flavory.userservice.security.JwtService;
 import com.flavory.userservice.service.AddressService;
 import jakarta.validation.Valid;
@@ -54,6 +55,19 @@ public class AddressController {
         List<AddressResponse> addresses = addressService.getUserAddresses(userId, auth0Id);
 
         return ResponseEntity.ok(ApiResponse.success(addresses));
+    }
+
+    @GetMapping("/by-auth0/{auth0Id}/default")
+    public ResponseEntity<ApiResponse<AddressResponse>> getDefaultAddressByAuth0Id(
+            @PathVariable String auth0Id,
+            Authentication authentication) {
+
+        String currentAuth0Id = jwtService.extractAuth0Id(authentication);
+        if (!currentAuth0Id.equals(auth0Id)) {
+            throw new UnauthorizedAccessException();
+        }
+        AddressResponse address = addressService.getDefaultAddressByAuth0Id(auth0Id);
+        return ResponseEntity.ok(ApiResponse.success(address));
     }
 
     @PutMapping("/{addressId}")
