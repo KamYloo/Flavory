@@ -11,6 +11,7 @@ import org.mapstruct.*;
         nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE
 )
 public interface AddressMapper {
+    @Mapping(target = "phoneNumber", source = "user.phoneNumber")
     AddressResponse toResponse(Address address);
 
     @Mapping(target = "id", ignore = true)

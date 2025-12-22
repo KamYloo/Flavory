@@ -122,83 +122,83 @@ services:
       timeout: 5s
       retries: 5
 
-#  user-service:
-#    container_name: user-service
-#    build:
-#      context: ./UserService
-#    env_file:
-#      - .env
-#    ports:
-#      - "${USER_SERVICE_HOST_PORT:-8081}:8080"
-#    environment:
-#      SPRING_DATASOURCE_URL: "jdbc:postgresql://user-db:5432/${POSTGRES_DB}"
-#      SPRING_DATASOURCE_USERNAME: "${POSTGRES_USER}"
-#      SPRING_DATASOURCE_PASSWORD: "${POSTGRES_PASSWORD}"
-#      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: ${AUTH0_ISSUER_URI}
-#      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_AUDIENCE: ${AUTH0_AUDIENCE}
-#      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka-server:8761/eureka/"
-#      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
-#      SPRING_RABBITMQ_HOST: rabbitmq
-#      SPRING_RABBITMQ_PORT: 5672
-#      SPRING_RABBITMQ_USERNAME: "${RABBITMQ_USER:-guest}"
-#      SPRING_RABBITMQ_PASSWORD: "${RABBITMQ_PASSWORD:-guest}"
-#    depends_on:
-#      user-db:
-#        condition: service_healthy
-#      eureka-server:
-#        condition: service_healthy
-#      rabbitmq:
-#        condition: service_healthy
-#    volumes:
-#      - uploads:/uploads
-#    networks:
-#      - flavory-net
-#    healthcheck:
-#      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
-#      interval: 15s
-#      timeout: 5s
-#      retries: 5
-#      start_period: 90s
-#    restart: unless-stopped
-#
-#  dish-service:
-#    container_name: dish-service
-#    build:
-#      context: ./dish-service
-#    env_file:
-#      - .env
-#    ports:
-#      - "${DISH_SERVICE_HOST_PORT:-8082}:8080"
-#    environment:
-#      SPRING_DATASOURCE_URL: "jdbc:postgresql://dish-db:5432/${DISH_POSTGRES_DB}"
-#      SPRING_DATASOURCE_USERNAME: "${DISH_POSTGRES_USER}"
-#      SPRING_DATASOURCE_PASSWORD: "${DISH_POSTGRES_PASSWORD}"
-#      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: ${AUTH0_ISSUER_URI}
-#      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_AUDIENCE: ${AUTH0_AUDIENCE}
-#      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka-server:8761/eureka/"
-#      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
-#      SPRING_RABBITMQ_HOST: rabbitmq
-#      SPRING_RABBITMQ_PORT: 5672
-#      SPRING_RABBITMQ_USERNAME: "${RABBITMQ_USER:-guest}"
-#      SPRING_RABBITMQ_PASSWORD: "${RABBITMQ_PASSWORD:-guest}"
-#    depends_on:
-#      dish-db:
-#        condition: service_healthy
-#      eureka-server:
-#        condition: service_healthy
-#      rabbitmq:
-#        condition: service_healthy
-#    volumes:
-#      - uploads:/uploads
-#    networks:
-#      - flavory-net
-#    healthcheck:
-#      test: [ "CMD", "curl", "-f", "http://localhost:8080/actuator/health" ]
-#      interval: 15s
-#      timeout: 5s
-#      retries: 5
-#      start_period: 90s
-#    restart: unless-stopped
+  user-service:
+    container_name: user-service
+    build:
+      context: ./UserService
+    env_file:
+      - .env
+    ports:
+      - "${USER_SERVICE_HOST_PORT:-8081}:8080"
+    environment:
+      SPRING_DATASOURCE_URL: "jdbc:postgresql://user-db:5432/${POSTGRES_DB}"
+      SPRING_DATASOURCE_USERNAME: "${POSTGRES_USER}"
+      SPRING_DATASOURCE_PASSWORD: "${POSTGRES_PASSWORD}"
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: ${AUTH0_ISSUER_URI}
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_AUDIENCE: ${AUTH0_AUDIENCE}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka-server:8761/eureka/"
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: "${RABBITMQ_USER:-guest}"
+      SPRING_RABBITMQ_PASSWORD: "${RABBITMQ_PASSWORD:-guest}"
+    depends_on:
+      user-db:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - uploads:/uploads
+    networks:
+      - flavory-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 90s
+    restart: unless-stopped
+
+  dish-service:
+    container_name: dish-service
+    build:
+      context: ./dish-service
+    env_file:
+      - .env
+    ports:
+      - "${DISH_SERVICE_HOST_PORT:-8082}:8080"
+    environment:
+      SPRING_DATASOURCE_URL: "jdbc:postgresql://dish-db:5432/${DISH_POSTGRES_DB}"
+      SPRING_DATASOURCE_USERNAME: "${DISH_POSTGRES_USER}"
+      SPRING_DATASOURCE_PASSWORD: "${DISH_POSTGRES_PASSWORD}"
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: ${AUTH0_ISSUER_URI}
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_AUDIENCE: ${AUTH0_AUDIENCE}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka-server:8761/eureka/"
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: "${RABBITMQ_USER:-guest}"
+      SPRING_RABBITMQ_PASSWORD: "${RABBITMQ_PASSWORD:-guest}"
+    depends_on:
+      dish-db:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - uploads:/uploads
+    networks:
+      - flavory-net
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8080/actuator/health" ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 90s
+    restart: unless-stopped
 #
 #  order-service:
 #    container_name: order-service

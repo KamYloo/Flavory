@@ -23,4 +23,5 @@ public class AddressResponse {
     private Double latitude;
     private Double longitude;
     private LocalDateTime createdAt;
+    private String phoneNumber;
 }
