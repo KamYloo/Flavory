@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -37,6 +38,9 @@ public interface DishRepository extends JpaRepository<Dish, Long>, JpaSpecificat
             "AND d.currentStock > 0 AND d.totalRatings >= 5 " +
             "ORDER BY d.averageRating DESC, d.totalRatings DESC")
     Page<Dish> findTopRatedDishes(Pageable pageable);
+
+    @Query("SELECT DISTINCT d FROM Dish d LEFT JOIN FETCH d.images WHERE d.id IN :ids")
+    List<Dish> findAllByIdsWithImages(@Param("ids") List<Long> ids);
 
     @Query("SELECT COUNT(d) FROM Dish d WHERE d.cookId = :cookId AND d.isActive = true")
     Long countActiveDishesForCook(@Param("cookId") String cookId);

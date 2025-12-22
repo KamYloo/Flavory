@@ -31,6 +31,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -160,6 +161,16 @@ public class DishServiceImpl implements DishService {
 
         return dishRepository.findAll(spec, pageable)
                 .map(dishMapper::toResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<DishResponse> getDishesByIds(List<Long> ids) {
+        List<Dish> dishes = dishRepository.findAllByIdsWithImages(ids);
+
+        return dishes.stream()
+                .map(dishMapper::toResponse)
+                .collect(Collectors.toList());
     }
 
     @Override

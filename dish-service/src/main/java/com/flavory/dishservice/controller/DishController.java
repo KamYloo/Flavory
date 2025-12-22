@@ -176,6 +176,11 @@ public class DishController {
         return ResponseEntity.ok(ApiResponse.success(dishes));
     }
 
+    @GetMapping("/api/dishes/batch")
+    public ResponseEntity<List<DishResponse>> getDishesByIds(@RequestParam List<Long> ids) {
+        return ResponseEntity.ok(dishService.getDishesByIds(ids));
+    }
+
     @PatchMapping("/{dishId}/stock")
     public ResponseEntity<ApiResponse<DishResponse>> updateStock(
             @PathVariable Long dishId,

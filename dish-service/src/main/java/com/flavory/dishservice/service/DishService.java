@@ -25,6 +25,7 @@ public interface DishService {
     Page<DishResponse> getAllAvailableDishes(Pageable pageable);
     Page<DishResponse> getDishesByCategory(Dish.DishCategory category, Pageable pageable);
     Page<DishResponse> searchDishes(DishSearchCriteria criteria, Pageable pageable);
+    List<DishResponse> getDishesByIds(List<Long> ids);
     DishResponse updateStock(Long dishId, UpdateStockRequest request, String cookId);
     void decreaseStock(Long dishId, Integer quantity);
     DishResponse toggleAvailability(Long dishId, String cookId);
