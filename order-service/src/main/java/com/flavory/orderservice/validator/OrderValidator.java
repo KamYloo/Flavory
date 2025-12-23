@@ -80,4 +80,11 @@ public class OrderValidator {
             throw new InvalidOrderStatusException(from, to);
         }
     }
+
+    public void validateOrderCancellation(Order order) {
+        if (!order.canBeCancelled()) {
+            throw new InvalidOrderStatusException(
+                    "Zamówienia nie można anulować w statusie: " + order.getStatus());
+        }
+    }
 }

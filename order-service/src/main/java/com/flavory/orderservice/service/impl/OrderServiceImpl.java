@@ -2,6 +2,7 @@ package com.flavory.orderservice.service.impl;
 
 import com.flavory.orderservice.client.DishServiceClient;
 import com.flavory.orderservice.client.UserServiceClient;
+import com.flavory.orderservice.dto.request.CancelOrderRequest;
 import com.flavory.orderservice.dto.request.CreateOrderRequest;
 import com.flavory.orderservice.dto.request.OrderItemRequest;
 import com.flavory.orderservice.dto.request.UpdateOrderStatusRequest;
@@ -144,6 +145,22 @@ public class OrderServiceImpl implements OrderService {
             order.setActualDeliveryTime(LocalDateTime.now());
         }
         order = orderRepository.save(order);
+        return orderMapper.toResponse(order);
+    }
+
+    @Override
+    @Transactional
+    public OrderResponse cancelOrder(Long orderId, CancelOrderRequest request, Authentication authentication) {
+        String userId = jwtService.extractAuth0Id(authentication);
+        Order order = getOrderOrThrow(orderId);
+
+        validateOrderAccess(order, userId);
+        orderValidator.validateOrderCancellation(order);
+
+        order.setStatus(Order.OrderStatus.CANCELLED);
+        order.setCancellationReason(request.getReason());
+        order = orderRepository.save(order);
+
         return orderMapper.toResponse(order);
     }
 

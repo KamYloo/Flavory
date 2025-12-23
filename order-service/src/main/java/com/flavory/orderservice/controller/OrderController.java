@@ -1,5 +1,6 @@
 package com.flavory.orderservice.controller;
 
+import com.flavory.orderservice.dto.request.CancelOrderRequest;
 import com.flavory.orderservice.dto.request.CreateOrderRequest;
 import com.flavory.orderservice.dto.request.UpdateOrderStatusRequest;
 import com.flavory.orderservice.dto.response.OrderResponse;
@@ -80,6 +81,16 @@ public class OrderController {
             Authentication authentication) {
 
         OrderResponse response = orderService.updateOrderStatus(orderId, request, authentication);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{orderId}/cancel")
+    public ResponseEntity<OrderResponse> cancelOrder(
+            @PathVariable Long orderId,
+            @Valid @RequestBody CancelOrderRequest request,
+            Authentication authentication) {
+
+        OrderResponse response = orderService.cancelOrder(orderId, request, authentication);
         return ResponseEntity.ok(response);
     }
 }

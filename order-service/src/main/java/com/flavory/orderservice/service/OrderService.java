@@ -1,5 +1,6 @@
 package com.flavory.orderservice.service;
 
+import com.flavory.orderservice.dto.request.CancelOrderRequest;
 import com.flavory.orderservice.dto.request.CreateOrderRequest;
 import com.flavory.orderservice.dto.request.UpdateOrderStatusRequest;
 import com.flavory.orderservice.dto.response.OrderResponse;
@@ -16,8 +17,8 @@ public interface OrderService {
     Page<OrderSummaryResponse> getCustomerOrders(Pageable pageable, Authentication authentication);
     Page<OrderSummaryResponse> getCookOrders(Pageable pageable, Authentication authentication);
     Page<OrderSummaryResponse> getCookOrdersByStatus(String status, Pageable pageable, Authentication authentication);
-    OrderResponse updateOrderStatus(Long orderId, UpdateOrderStatusRequest request,
-                                    Authentication authentication);
+    OrderResponse updateOrderStatus(Long orderId, UpdateOrderStatusRequest request, Authentication authentication);
+    OrderResponse cancelOrder(Long orderId, CancelOrderRequest request, Authentication authentication);
     Order getOrderOrThrow(Long orderId);
     void validateOrderAccess(Order order, String userId);
 }
