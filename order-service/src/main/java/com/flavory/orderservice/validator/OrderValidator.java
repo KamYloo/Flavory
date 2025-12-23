@@ -87,4 +87,15 @@ public class OrderValidator {
                     "Zamówienia nie można anulować w statusie: " + order.getStatus());
         }
     }
+
+    public void validateOrderRating(Order order) {
+        if (!order.canBeRated()) {
+            throw new InvalidOrderStatusException(
+                    "Zamówienie można ocenić dopiero po jego dostarczeniu. Aktualny status: " + order.getStatus());
+        }
+
+        if (order.getDishRating() != null) {
+            throw new IllegalArgumentException("Zamówienie zostało już ocenione");
+        }
+    }
 }

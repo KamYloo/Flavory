@@ -2,10 +2,7 @@ package com.flavory.orderservice.service.impl;
 
 import com.flavory.orderservice.client.DishServiceClient;
 import com.flavory.orderservice.client.UserServiceClient;
-import com.flavory.orderservice.dto.request.CancelOrderRequest;
-import com.flavory.orderservice.dto.request.CreateOrderRequest;
-import com.flavory.orderservice.dto.request.OrderItemRequest;
-import com.flavory.orderservice.dto.request.UpdateOrderStatusRequest;
+import com.flavory.orderservice.dto.request.*;
 import com.flavory.orderservice.dto.response.AddressDto;
 import com.flavory.orderservice.dto.response.DishDto;
 import com.flavory.orderservice.dto.response.OrderResponse;
@@ -159,6 +156,25 @@ public class OrderServiceImpl implements OrderService {
 
         order.setStatus(Order.OrderStatus.CANCELLED);
         order.setCancellationReason(request.getReason());
+        order = orderRepository.save(order);
+
+        return orderMapper.toResponse(order);
+    }
+
+    @Override
+    @Transactional
+    public OrderResponse rateOrder(Long orderId, RateOrderRequest request, Authentication authentication) {
+        String customerId = jwtService.extractAuth0Id(authentication);
+        Order order = getOrderOrThrow(orderId);
+
+        if (!order.getCustomerId().equals(customerId)) {
+            throw new UnauthorizedOrderAccessException(
+                    "Tylko klient może ocenić swoje zamówienie");
+        }
+        orderValidator.validateOrderRating(order);
+
+        order.setDishRating(request.getRating());
+        order.setRatedDishId(request.getDishId());
         order = orderRepository.save(order);
 
         return orderMapper.toResponse(order);
