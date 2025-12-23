@@ -101,6 +101,24 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public Page<OrderSummaryResponse> getCookOrdersByStatus(String status, Pageable pageable, Authentication authentication) {
+        String cookId = jwtService.extractAuth0Id(authentication);
+
+        Order.OrderStatus orderStatus;
+        try {
+            orderStatus = Order.OrderStatus.valueOf(status.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Invalid order status: " + status);
+        }
+
+        Page<Order> ordersPage = orderRepository.findByCookIdAndStatus(
+                cookId, orderStatus, pageable);
+
+        return ordersPage.map(orderMapper::toSummaryResponse);
+    }
+
+    @Override
     public Order getOrderOrThrow(Long orderId) {
         return orderRepository.findById(orderId)
                 .orElseThrow(() -> new OrderNotFoundException(orderId));

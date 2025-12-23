@@ -14,4 +14,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     @EntityGraph(attributePaths = {"items"})
     Page<Order> findByCookId(String cookId, Pageable pageable);
+
+    @EntityGraph(attributePaths = {"items"})
+    Page<Order> findByCookIdAndStatus(String cookId, Order.OrderStatus status, Pageable pageable);
 }
