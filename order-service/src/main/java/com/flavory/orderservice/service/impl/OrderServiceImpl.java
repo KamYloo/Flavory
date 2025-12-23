@@ -10,11 +10,13 @@ import com.flavory.orderservice.dto.response.OrderSummaryResponse;
 import com.flavory.orderservice.entity.DeliveryAddress;
 import com.flavory.orderservice.entity.Order;
 import com.flavory.orderservice.entity.OrderItem;
+import com.flavory.orderservice.event.outbound.OrderPlacedEvent;
 import com.flavory.orderservice.exception.AddressNotFoundException;
 import com.flavory.orderservice.exception.DishNotAvailableException;
 import com.flavory.orderservice.exception.OrderNotFoundException;
 import com.flavory.orderservice.exception.UnauthorizedOrderAccessException;
 import com.flavory.orderservice.mapper.OrderMapper;
+import com.flavory.orderservice.messaging.publisher.OrderEventPublisher;
 import com.flavory.orderservice.repository.OrderRepository;
 import com.flavory.orderservice.security.JwtService;
 import com.flavory.orderservice.service.OrderService;
@@ -29,10 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -44,6 +43,7 @@ public class OrderServiceImpl implements OrderService {
     private final OrderMapper orderMapper;
     private final UserServiceClient userServiceClient;
     private final DishServiceClient dishServiceClient;
+    private final OrderEventPublisher orderEventPublisher;
 
     @Value("${app.business.delivery-fee}")
     private BigDecimal deliveryFee;
@@ -68,7 +68,7 @@ public class OrderServiceImpl implements OrderService {
         orderValidator.validateOrderAmount(order.getTotalAmount());
 
         order = orderRepository.save(order);
-
+        publishOrderPlacedEvent(order);
         return orderMapper.toResponse(order);
     }
 
@@ -286,5 +286,27 @@ public class OrderServiceImpl implements OrderService {
                 .longitude(addressDto.getLongitude())
                 .deliveryInstructions(request.getDeliveryInstructions())
                 .build();
+    }
+
+    private void publishOrderPlacedEvent(Order order) {
+        OrderPlacedEvent event = OrderPlacedEvent.builder()
+                .orderId(order.getId())
+                .customerId(order.getCustomerId())
+                .cookId(order.getCookId())
+                .items(order.getItems().stream()
+                        .map(item -> OrderPlacedEvent.OrderItem.builder()
+                                .dishId(item.getDishId())
+                                .dishName(item.getDishName())
+                                .quantity(item.getQuantity())
+                                .price(item.getPrice())
+                                .itemTotal(item.getItemTotal())
+                                .build())
+                        .collect(Collectors.toList()))
+                .totalAmount(order.getTotalAmount())
+                .placedAt(LocalDateTime.now())
+                .eventId(UUID.randomUUID().toString())
+                .build();
+
+        orderEventPublisher.publishOrderPlaced(event);
     }
 }
