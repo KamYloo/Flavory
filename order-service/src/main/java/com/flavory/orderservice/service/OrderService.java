@@ -13,6 +13,7 @@ public interface OrderService {
     OrderResponse createOrder(CreateOrderRequest request, Authentication authentication);
     OrderResponse getOrderById(Long orderId, Authentication authentication);
     Page<OrderSummaryResponse> getCustomerOrders(Pageable pageable, Authentication authentication);
+    Page<OrderSummaryResponse> getCookOrders(Pageable pageable, Authentication authentication);
     Order getOrderOrThrow(Long orderId);
     void validateOrderAccess(Order order, String userId);
 }

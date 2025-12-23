@@ -48,4 +48,14 @@ public class OrderController {
         Page<OrderSummaryResponse> response = orderService.getCustomerOrders(pageable, authentication);
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/cook/me")
+    public ResponseEntity<Page<OrderSummaryResponse>> getMyCookOrders(
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC)
+            Pageable pageable,
+            Authentication authentication) {
+
+        Page<OrderSummaryResponse> response = orderService.getCookOrders(pageable, authentication);
+        return ResponseEntity.ok(response);
+    }
 }

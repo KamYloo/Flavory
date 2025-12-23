@@ -93,6 +93,14 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public Page<OrderSummaryResponse> getCookOrders(Pageable pageable, Authentication authentication) {
+        String cookId = jwtService.extractAuth0Id(authentication);
+        Page<Order> ordersPage = orderRepository.findByCookId(cookId, pageable);
+        return ordersPage.map(orderMapper::toSummaryResponse);
+    }
+
+    @Override
     public Order getOrderOrThrow(Long orderId) {
         return orderRepository.findById(orderId)
                 .orElseThrow(() -> new OrderNotFoundException(orderId));

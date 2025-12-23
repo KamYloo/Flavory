@@ -11,4 +11,7 @@ import org.springframework.stereotype.Repository;
 public interface OrderRepository extends JpaRepository<Order, Long> {
     @EntityGraph(attributePaths = {"items"})
     Page<Order> findByCustomerId(String customerId, Pageable pageable);
+
+    @EntityGraph(attributePaths = {"items"})
+    Page<Order> findByCookId(String cookId, Pageable pageable);
 }
