@@ -7,6 +7,7 @@ import com.flavory.orderservice.dto.request.OrderItemRequest;
 import com.flavory.orderservice.dto.response.AddressDto;
 import com.flavory.orderservice.dto.response.DishDto;
 import com.flavory.orderservice.dto.response.OrderResponse;
+import com.flavory.orderservice.dto.response.OrderSummaryResponse;
 import com.flavory.orderservice.entity.DeliveryAddress;
 import com.flavory.orderservice.entity.Order;
 import com.flavory.orderservice.entity.OrderItem;
@@ -21,6 +22,8 @@ import com.flavory.orderservice.service.OrderService;
 import com.flavory.orderservice.validator.OrderValidator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -79,6 +82,14 @@ public class OrderServiceImpl implements OrderService {
         validateOrderAccess(order, customerId);
 
         return orderMapper.toResponse(order);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<OrderSummaryResponse> getCustomerOrders(Pageable pageable, Authentication authentication) {
+        String customerId = jwtService.extractAuth0Id(authentication);
+        Page<Order> ordersPage = orderRepository.findByCustomerId(customerId, pageable);
+        return ordersPage.map(orderMapper::toSummaryResponse);
     }
 
     @Override
