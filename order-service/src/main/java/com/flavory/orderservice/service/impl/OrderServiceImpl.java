@@ -12,6 +12,8 @@ import com.flavory.orderservice.entity.Order;
 import com.flavory.orderservice.entity.OrderItem;
 import com.flavory.orderservice.exception.AddressNotFoundException;
 import com.flavory.orderservice.exception.DishNotAvailableException;
+import com.flavory.orderservice.exception.OrderNotFoundException;
+import com.flavory.orderservice.exception.UnauthorizedOrderAccessException;
 import com.flavory.orderservice.mapper.OrderMapper;
 import com.flavory.orderservice.repository.OrderRepository;
 import com.flavory.orderservice.security.JwtService;
@@ -66,6 +68,30 @@ public class OrderServiceImpl implements OrderService {
         order = orderRepository.save(order);
 
         return orderMapper.toResponse(order);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public OrderResponse getOrderById(Long orderId, Authentication authentication) {
+        String customerId = jwtService.extractAuth0Id(authentication);
+        Order order = getOrderOrThrow(orderId);
+
+        validateOrderAccess(order, customerId);
+
+        return orderMapper.toResponse(order);
+    }
+
+    @Override
+    public Order getOrderOrThrow(Long orderId) {
+        return orderRepository.findById(orderId)
+                .orElseThrow(() -> new OrderNotFoundException(orderId));
+    }
+
+    @Override
+    public void validateOrderAccess(Order order, String userId) {
+        if (!order.getCustomerId().equals(userId) && !order.getCookId().equals(userId)) {
+            throw new UnauthorizedOrderAccessException();
+        }
     }
 
     private List<DishDto> fetchAndValidateDishes(List<OrderItemRequest> items) {
