@@ -33,8 +33,8 @@ public class GlobalExceptionHandler {
         ErrorResponse errorResponse = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.BAD_REQUEST.value())
-                .error("Validation Failed")
-                .message("Invalid input data")
+                .error("Walidacja nie powiodła się")
+                .message("Nieprawidłowe dane wejściowe")
                 .path(request.getDescription(false).replace("uri=", ""))
                 .validationErrors(errors)
                 .build();
@@ -98,6 +98,20 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
     }
 
+    @ExceptionHandler(InvalidOrderStatusException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidOrderStatusException(
+            InvalidOrderStatusException ex,
+            WebRequest request) {
+
+        ErrorResponse errorResponse = createErrorResponse(
+                HttpStatus.BAD_REQUEST,
+                ex.getMessage(),
+                request
+        );
+
+        return ResponseEntity.badRequest().body(errorResponse);
+    }
+
     @ExceptionHandler(UnauthorizedOrderAccessException.class)
     public ResponseEntity<ErrorResponse> handleUnauthorizedOrderAccessException(
             UnauthorizedOrderAccessException ex,
@@ -119,7 +133,7 @@ public class GlobalExceptionHandler {
 
         ErrorResponse errorResponse = createErrorResponse(
                 HttpStatus.FORBIDDEN,
-                "Access denied",
+                "Odmowa dostępu",
                 request
         );
 
@@ -133,7 +147,7 @@ public class GlobalExceptionHandler {
 
         ErrorResponse errorResponse = createErrorResponse(
                 HttpStatus.INTERNAL_SERVER_ERROR,
-                "An unexpected error occurred",
+                "Wystąpił nieoczekiwany błąd",
                 request
         );
 

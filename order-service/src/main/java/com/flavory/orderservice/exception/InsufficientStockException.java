@@ -2,7 +2,7 @@ package com.flavory.orderservice.exception;
 
 public class InsufficientStockException extends RuntimeException {
     public InsufficientStockException(String dishName, Integer available, Integer requested) {
-        super(String.format("Insufficient stock for dish '%s'. Available: %d, Requested: %d",
+        super(String.format("Niewystarczająca ilość zapasów dla dania '%s'. Dostępne: %d, Żądane: %d",
                 dishName, available, requested));
     }
 

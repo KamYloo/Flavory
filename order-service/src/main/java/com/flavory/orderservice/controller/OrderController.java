@@ -1,6 +1,7 @@
 package com.flavory.orderservice.controller;
 
 import com.flavory.orderservice.dto.request.CreateOrderRequest;
+import com.flavory.orderservice.dto.request.UpdateOrderStatusRequest;
 import com.flavory.orderservice.dto.response.OrderResponse;
 import com.flavory.orderservice.dto.response.OrderSummaryResponse;
 import com.flavory.orderservice.service.OrderService;
@@ -69,6 +70,16 @@ public class OrderController {
         Page<OrderSummaryResponse> response = orderService.getCookOrdersByStatus(
                 status, pageable, authentication);
 
+        return ResponseEntity.ok(response);
+    }
+
+    @PatchMapping("/{orderId}/status")
+    public ResponseEntity<OrderResponse> updateOrderStatus(
+            @PathVariable Long orderId,
+            @Valid @RequestBody UpdateOrderStatusRequest request,
+            Authentication authentication) {
+
+        OrderResponse response = orderService.updateOrderStatus(orderId, request, authentication);
         return ResponseEntity.ok(response);
     }
 }

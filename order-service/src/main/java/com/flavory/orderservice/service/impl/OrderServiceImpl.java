@@ -4,6 +4,7 @@ import com.flavory.orderservice.client.DishServiceClient;
 import com.flavory.orderservice.client.UserServiceClient;
 import com.flavory.orderservice.dto.request.CreateOrderRequest;
 import com.flavory.orderservice.dto.request.OrderItemRequest;
+import com.flavory.orderservice.dto.request.UpdateOrderStatusRequest;
 import com.flavory.orderservice.dto.response.AddressDto;
 import com.flavory.orderservice.dto.response.DishDto;
 import com.flavory.orderservice.dto.response.OrderResponse;
@@ -109,13 +110,41 @@ public class OrderServiceImpl implements OrderService {
         try {
             orderStatus = Order.OrderStatus.valueOf(status.toUpperCase());
         } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("Invalid order status: " + status);
+            throw new IllegalArgumentException("Nieprawidłowy status zamówienia: " + status);
         }
 
         Page<Order> ordersPage = orderRepository.findByCookIdAndStatus(
                 cookId, orderStatus, pageable);
 
         return ordersPage.map(orderMapper::toSummaryResponse);
+    }
+
+    @Override
+    @Transactional
+    public OrderResponse updateOrderStatus(Long orderId, UpdateOrderStatusRequest request, Authentication authentication) {
+        String cookId = jwtService.extractAuth0Id(authentication);
+        Order order = getOrderOrThrow(orderId);
+
+        if (!order.getCookId().equals(cookId)) {
+            throw new UnauthorizedOrderAccessException(
+                    "Tylko kucharz, do którego należy to zamówienie, może aktualizować jego status");
+        }
+
+        Order.OrderStatus newStatus;
+        try {
+            newStatus = Order.OrderStatus.valueOf(request.getStatus().toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("Nieprawidłowy status zamówienia: " + request.getStatus());
+        }
+
+        orderValidator.validateStatusTransition(order.getStatus(), newStatus);
+        order.updateStatus(newStatus);
+
+        if (newStatus == Order.OrderStatus.DELIVERED) {
+            order.setActualDeliveryTime(LocalDateTime.now());
+        }
+        order = orderRepository.save(order);
+        return orderMapper.toResponse(order);
     }
 
     @Override

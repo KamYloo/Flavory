@@ -2,8 +2,10 @@ package com.flavory.orderservice.validator;
 
 import com.flavory.orderservice.dto.request.OrderItemRequest;
 import com.flavory.orderservice.dto.response.DishDto;
+import com.flavory.orderservice.entity.Order;
 import com.flavory.orderservice.exception.DishNotAvailableException;
 import com.flavory.orderservice.exception.InsufficientStockException;
+import com.flavory.orderservice.exception.InvalidOrderStatusException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -24,18 +26,18 @@ public class OrderValidator {
 
     public void validateOrderCreation(List<OrderItemRequest> items) {
         if (items == null || items.isEmpty()) {
-            throw new IllegalArgumentException("Order must contain at least one item");
+            throw new IllegalArgumentException("Zamówienie musi zawierać co najmniej jedną pozycję");
         }
 
         if (items.size() > maxItemsPerOrder) {
             throw new IllegalArgumentException(
-                    "Order cannot contain more than " + maxItemsPerOrder + " items");
+                    "Zamówienie nie może zawierać więcej niż " + maxItemsPerOrder + " pozycji");
         }
     }
 
     public void validateDishAvailability(DishDto dish, Integer requestedQuantity) {
         if (dish == null) {
-            throw new DishNotAvailableException("Dish not found");
+            throw new DishNotAvailableException("Danie nie zostało znalezione");
         }
 
         if (!Boolean.TRUE.equals(dish.getAvailable())) {
@@ -54,12 +56,28 @@ public class OrderValidator {
     public void validateOrderAmount(BigDecimal totalAmount) {
         if (totalAmount.compareTo(minOrderAmount) < 0) {
             throw new IllegalArgumentException(
-                    "Order amount must be at least " + minOrderAmount + " PLN");
+                    "Kwota zamówienia musi wynosić co najmniej " + minOrderAmount + " PLN");
         }
 
         if (totalAmount.compareTo(maxOrderAmount) > 0) {
             throw new IllegalArgumentException(
-                    "Order amount cannot exceed " + maxOrderAmount + " PLN");
+                    "Kwota zamówienia nie może przekroczyć " + maxOrderAmount + " PLN");
+        }
+    }
+
+    public void validateStatusTransition(Order.OrderStatus from, Order.OrderStatus to) {
+        boolean isValid = switch (from) {
+            case PENDING -> to == Order.OrderStatus.PAID || to == Order.OrderStatus.CANCELLED;
+            case PAID -> to == Order.OrderStatus.CONFIRMED || to == Order.OrderStatus.CANCELLED;
+            case CONFIRMED -> to == Order.OrderStatus.PREPARING || to == Order.OrderStatus.CANCELLED;
+            case PREPARING -> to == Order.OrderStatus.READY;
+            case READY -> to == Order.OrderStatus.IN_DELIVERY;
+            case IN_DELIVERY -> to == Order.OrderStatus.DELIVERED;
+            case DELIVERED, CANCELLED, FAILED -> false;
+        };
+
+        if (!isValid) {
+            throw new InvalidOrderStatusException(from, to);
         }
     }
 }

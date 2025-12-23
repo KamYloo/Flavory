@@ -13,10 +13,10 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class OrderItemRequest {
 
-    @NotNull(message = "Dish ID is required")
+    @NotNull(message = "ID dania jest wymagane")
     private Long dishId;
 
-    @NotNull(message = "Quantity is required")
-    @Min(value = 1, message = "Quantity must be at least 1")
+    @NotNull(message = "Ilość jest wymagana")
+    @Min(value = 1, message = "Ilość musi wynosić co najmniej 1")
     private Integer quantity;
 }

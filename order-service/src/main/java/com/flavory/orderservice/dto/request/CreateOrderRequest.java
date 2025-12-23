@@ -15,24 +15,24 @@ import java.util.List;
 @AllArgsConstructor
 public class CreateOrderRequest {
 
-    @NotNull(message = "Cook ID is required")
-    @NotBlank(message = "Cook ID cannot be blank")
+    @NotNull(message = "ID kucharza jest wymagane")
+    @NotBlank(message = "ID kucharza nie może być puste")
     private String cookId;
 
-    @NotNull(message = "Order must contain at least one item")
-    @NotEmpty(message = "Order must contain at least one item")
-    @Size(min = 1, max = 20, message = "Order must contain between 1 and 20 items")
+    @NotNull(message = "Zamówienie musi zawierać przynajmniej jedną pozycję")
+    @NotEmpty(message = "Zamówienie musi zawierać przynajmniej jedną pozycję")
+    @Size(min = 1, max = 20, message = "Zamówienie musi zawierać od 1 do 20 pozycji")
     @Valid
     private List<OrderItemRequest> items;
 
-    @Size(max = 500, message = "Customer notes cannot exceed 500 characters")
+    @Size(max = 500, message = "Uwagi klienta nie mogą przekraczać 500 znaków")
     private String customerNotes;
 
-    @Size(max = 500, message = "Delivery instructions cannot exceed 500 characters")
+    @Size(max = 500, message = "Instrukcje dostawy nie mogą przekraczać 500 znaków")
     private String deliveryInstructions;
 
-    @NotNull(message = "Payment method is required")
-    @NotBlank(message = "Payment method cannot be blank")
-    @Pattern(regexp = "CARD|BLIK|CASH", message = "Payment method must be CARD, BLIK, or CASH")
+    @NotNull(message = "Metoda płatności jest wymagana")
+    @NotBlank(message = "Metoda płatności nie może być pusta")
+    @Pattern(regexp = "CARD|BLIK|CASH", message = "Metoda płatności musi być jedną z: CARD, BLIK lub CASH")
     private String paymentMethod;
 }

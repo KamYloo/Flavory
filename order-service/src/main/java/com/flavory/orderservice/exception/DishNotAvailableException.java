@@ -2,7 +2,7 @@ package com.flavory.orderservice.exception;
 
 public class DishNotAvailableException extends RuntimeException {
     public DishNotAvailableException(String dishName) {
-        super("Dish '" + dishName + "' is not available for ordering");
+        super("Danie'" + dishName + "' nie jest dostępne do zamówienia");
     }
 
     public DishNotAvailableException(String message, Throwable cause) {

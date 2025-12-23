@@ -20,7 +20,7 @@ public class JwtService {
         Object userIdClaim = getClaimObject(jwt, "user_id");
 
         switch (userIdClaim) {
-            case null -> throw new IllegalStateException("User ID not found in token");
+            case null -> throw new IllegalStateException("Nie znaleziono identyfikatora użytkownika w tokenie");
             case Integer i -> {
                 return i.longValue();
             }
@@ -31,7 +31,7 @@ public class JwtService {
                 try {
                     return Long.parseLong((String) userIdClaim);
                 } catch (NumberFormatException e) {
-                    throw new IllegalStateException("Invalid user_id format");
+                    throw new IllegalStateException("Nieprawidłowy format identyfikatora użytkownika");
                 }
             }
             case Double v -> {
@@ -41,7 +41,7 @@ public class JwtService {
             }
         }
 
-        throw new IllegalStateException("Invalid format for 'user_id' in token");
+        throw new IllegalStateException("Nieprawidłowy format dla „user_id” w tokenie");
     }
 
     public String extractUserName(Authentication authentication) {
@@ -53,7 +53,7 @@ public class JwtService {
         if (firstName != null && lastName != null) {
             return firstName + " " + lastName;
         }
-        return name != null ? name : "Unknown User";
+        return name != null ? name : "Nieznany użytkownik";
     }
 
     public boolean hasRole(Authentication authentication, String role) {
@@ -69,7 +69,7 @@ public class JwtService {
         if (authentication.getPrincipal() instanceof Jwt) {
             return (Jwt) authentication.getPrincipal();
         }
-        throw new IllegalArgumentException("Authentication must be based on JWT");
+        throw new IllegalArgumentException("Uwierzytelnianie musi być oparte na JWT");
     }
 
     private String getClaimAsString(Jwt jwt, String claimName) {

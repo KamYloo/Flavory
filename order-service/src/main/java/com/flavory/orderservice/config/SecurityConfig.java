@@ -83,7 +83,7 @@ public class SecurityConfig {
                 return OAuth2TokenValidatorResult.success();
             }
             return OAuth2TokenValidatorResult.failure(
-                    new OAuth2Error("invalid_token", "Required audience not found", null));
+                    new OAuth2Error("nieprawidłowy_token", "Nie znaleziono wymaganej grupy odbiorców", null));
         }
     }
 }
