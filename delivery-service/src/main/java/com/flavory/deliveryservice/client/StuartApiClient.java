@@ -5,10 +5,7 @@ import com.flavory.deliveryservice.dto.response.StuartAuthResponse;
 import com.flavory.deliveryservice.dto.response.StuartJobResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 
 @FeignClient(
         name = "stuart-api",
@@ -27,6 +24,12 @@ public interface  StuartApiClient {
     StuartJobResponse createJob(
             @RequestHeader("Authorization") String authorizationHeader,
             @RequestBody StuartJobRequest request
+    );
+
+    @GetMapping("/v2/jobs/{jobId}")
+    StuartJobResponse getJob(
+            @RequestHeader("Authorization") String authorizationHeader,
+            @PathVariable("jobId") Long jobId
     );
 
     class StuartFeignConfig {
