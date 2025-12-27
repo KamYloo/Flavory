@@ -32,6 +32,12 @@ public interface  StuartApiClient {
             @PathVariable("jobId") Long jobId
     );
 
+    @DeleteMapping("/v2/jobs/{jobId}")
+    void cancelJob(
+            @RequestHeader("Authorization") String authorizationHeader,
+            @PathVariable("jobId") Long jobId
+    );
+
     class StuartFeignConfig {
     }
 }

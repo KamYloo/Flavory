@@ -6,5 +6,6 @@ import com.flavory.deliveryservice.dto.response.StuartJobResponse;
 public interface StuartApiService {
     StuartJobResponse createJob(StuartJobRequest request);
     StuartJobResponse getJob(Long jobId);
+    void cancelJob(Long jobId);
     String getAccessToken();
 }

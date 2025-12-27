@@ -67,6 +67,25 @@ public class StuartApiServiceImpl implements StuartApiService {
     }
 
     @Override
+    public void cancelJob(Long jobId) {
+        if (!stuartConfig.isStuartEnabled()) {
+            throw new StuartApiException("Stuart API is disabled");
+        }
+
+        try {
+            String token = getAccessToken();
+
+            stuartApiClient.cancelJob("Bearer " + token, jobId);
+
+        } catch (FeignException e) {
+            throw new StuartApiException("Failed to cancel Stuart job: " + e.getMessage(), e);
+
+        } catch (Exception e) {
+            throw new StuartApiException("Unexpected error cancelling Stuart job", e);
+        }
+    }
+
+    @Override
     public String getAccessToken() {
         if (cachedAccessToken != null && tokenExpiryTime != null &&
                 LocalDateTime.now().isBefore(tokenExpiryTime)) {
