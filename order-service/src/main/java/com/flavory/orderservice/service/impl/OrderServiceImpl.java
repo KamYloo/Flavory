@@ -10,6 +10,7 @@ import com.flavory.orderservice.dto.response.OrderSummaryResponse;
 import com.flavory.orderservice.entity.DeliveryAddress;
 import com.flavory.orderservice.entity.Order;
 import com.flavory.orderservice.entity.OrderItem;
+import com.flavory.orderservice.event.outbound.OrderCompletedEvent;
 import com.flavory.orderservice.event.outbound.OrderPlacedEvent;
 import com.flavory.orderservice.exception.AddressNotFoundException;
 import com.flavory.orderservice.exception.DishNotAvailableException;
@@ -140,6 +141,7 @@ public class OrderServiceImpl implements OrderService {
 
         if (newStatus == Order.OrderStatus.DELIVERED) {
             order.setActualDeliveryTime(LocalDateTime.now());
+            publishOrderCompletedEvent(order);
         }
         order = orderRepository.save(order);
         return orderMapper.toResponse(order);
@@ -176,6 +178,8 @@ public class OrderServiceImpl implements OrderService {
         order.setDishRating(request.getRating());
         order.setRatedDishId(request.getDishId());
         order = orderRepository.save(order);
+
+        publishOrderCompletedEvent(order);
 
         return orderMapper.toResponse(order);
     }
@@ -308,5 +312,29 @@ public class OrderServiceImpl implements OrderService {
                 .build();
 
         orderEventPublisher.publishOrderPlaced(event);
+    }
+
+    private void publishOrderCompletedEvent(Order order) {
+        OrderCompletedEvent event = OrderCompletedEvent.builder()
+                .orderId(order.getId())
+                .customerId(order.getCustomerId())
+                .cookId(order.getCookId())
+                .items(order.getItems().stream()
+                        .map(item -> OrderCompletedEvent.OrderItem.builder()
+                                .dishId(item.getDishId())
+                                .dishName(item.getDishName())
+                                .quantity(item.getQuantity())
+                                .itemTotal(item.getItemTotal())
+                                .unitPrice(item.getPrice())
+                                .build())
+                        .collect(Collectors.toList()))
+                .totalAmount(order.getTotalAmount())
+                .dishRating(order.getDishRating())
+                .ratedDishId(order.getRatedDishId())
+                .completedAt(LocalDateTime.now())
+                .eventId(UUID.randomUUID().toString())
+                .build();
+
+        orderEventPublisher.publishOrderCompleted(event);
     }
 }
