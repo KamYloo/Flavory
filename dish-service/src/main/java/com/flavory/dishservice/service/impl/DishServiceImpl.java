@@ -203,6 +203,15 @@ public class DishServiceImpl implements DishService {
     }
 
     @Override
+    public void increaseStock(Long dishId, Integer quantity) {
+        Dish dish = dishRepository.findById(dishId)
+                .orElseThrow(() -> new DishNotFoundException(dishId));
+
+        dish.increaseStock(quantity);
+        dishRepository.save(dish);
+    }
+
+    @Override
     public void decreaseStock(Long dishId, Integer quantity) {
         Dish dish = dishRepository.findById(dishId)
                 .orElseThrow(() -> new DishNotFoundException(dishId));

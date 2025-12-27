@@ -10,6 +10,7 @@ import com.flavory.orderservice.dto.response.OrderSummaryResponse;
 import com.flavory.orderservice.entity.DeliveryAddress;
 import com.flavory.orderservice.entity.Order;
 import com.flavory.orderservice.entity.OrderItem;
+import com.flavory.orderservice.event.outbound.OrderCancelledEvent;
 import com.flavory.orderservice.event.outbound.OrderCompletedEvent;
 import com.flavory.orderservice.event.outbound.OrderPlacedEvent;
 import com.flavory.orderservice.exception.AddressNotFoundException;
@@ -159,6 +160,8 @@ public class OrderServiceImpl implements OrderService {
         order.setStatus(Order.OrderStatus.CANCELLED);
         order.setCancellationReason(request.getReason());
         order = orderRepository.save(order);
+
+        publishOrderCancelledEvent(order);
 
         return orderMapper.toResponse(order);
     }
@@ -336,5 +339,25 @@ public class OrderServiceImpl implements OrderService {
                 .build();
 
         orderEventPublisher.publishOrderCompleted(event);
+    }
+
+    private void publishOrderCancelledEvent(Order order) {
+        OrderCancelledEvent event = OrderCancelledEvent.builder()
+                .orderId(order.getId())
+                .customerId(order.getCustomerId())
+                .cookId(order.getCookId())
+                .items(order.getItems().stream()
+                        .map(item -> OrderCancelledEvent.OrderItem.builder()
+                                .dishId(item.getDishId())
+                                .dishName(item.getDishName())
+                                .quantity(item.getQuantity())
+                                .build())
+                        .collect(Collectors.toList()))
+                .cancellationReason(order.getCancellationReason())
+                .cancelledAt(LocalDateTime.now())
+                .eventId(UUID.randomUUID().toString())
+                .build();
+
+        orderEventPublisher.publishOrderCancelled(event);
     }
 }

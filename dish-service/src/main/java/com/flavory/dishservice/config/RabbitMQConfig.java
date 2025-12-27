@@ -22,6 +22,7 @@ public class RabbitMQConfig {
 
     public static final String ORDER_PLACED_QUEUE = "dish.order.placed.queue";
     public static final String ORDER_COMPLETED_QUEUE = "dish.order.completed.queue";
+    public static final String ORDER_CANCELLED_QUEUE = "dish.order.cancelled.queue";
 
     public static final String DISH_CREATED_ROUTING_KEY = "dish.created";
     public static final String DISH_UPDATED_ROUTING_KEY = "dish.updated";
@@ -30,6 +31,7 @@ public class RabbitMQConfig {
 
     public static final String ORDER_PLACED_ROUTING_KEY = "order.placed";
     public static final String ORDER_COMPLETED_ROUTING_KEY = "order.completed";
+    public static final String ORDER_CANCELLED_ROUTING_KEY = "order.cancelled";
 
     public static final String DLX_EXCHANGE = "dlx.exchange";
 
@@ -121,6 +123,15 @@ public class RabbitMQConfig {
     }
 
     @Bean
+    public Queue orderCancelledQueue() {
+        return QueueBuilder
+                .durable(ORDER_CANCELLED_QUEUE)
+                .withArgument("x-dead-letter-exchange", DLX_EXCHANGE)
+                .withArgument("x-dead-letter-routing-key", "dlq.order.cancelled")
+                .build();
+    }
+
+    @Bean
     public Binding dishCreatedBinding(Queue dishCreatedQueue, TopicExchange dishExchange) {
         return BindingBuilder
                 .bind(dishCreatedQueue)
@@ -168,6 +179,14 @@ public class RabbitMQConfig {
                 .bind(orderCompletedQueue)
                 .to(orderExchange)
                 .with(ORDER_COMPLETED_ROUTING_KEY);
+    }
+
+    @Bean
+    public Binding orderCancelledBinding(Queue orderCancelledQueue, TopicExchange orderExchange) {
+        return BindingBuilder
+                .bind(orderCancelledQueue)
+                .to(orderExchange)
+                .with(ORDER_CANCELLED_ROUTING_KEY);
     }
 
     @Bean

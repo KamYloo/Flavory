@@ -2,6 +2,7 @@ package com.flavory.dishservice.messaging.listener;
 
 import com.flavory.dishservice.config.RabbitMQConfig;
 import com.flavory.dishservice.entity.ProcessedEventEntity;
+import com.flavory.dishservice.event.inbound.OrderCancelledEvent;
 import com.flavory.dishservice.event.inbound.OrderCompletedEvent;
 import com.flavory.dishservice.event.inbound.OrderPlacedEvent;
 import com.flavory.dishservice.repository.ProcessedEventRepository;
@@ -51,6 +52,24 @@ public class OrderEventListener {
             dishService.updateDishRating(event.getRatedDishId(), event.getDishRating());
         }
 
+        markEventAsProcessed(event.getEventId());
+    }
+
+    @RabbitListener(queues = RabbitMQConfig.ORDER_CANCELLED_QUEUE)
+    @Transactional
+    public void handleOrderCancelled(OrderCancelledEvent event) {
+        if (isEventProcessed(event.getEventId())) {
+            return;
+        }
+
+        for (OrderCancelledEvent.OrderItem item : event.getItems()) {
+            try {
+                dishService.increaseStock(item.getDishId(), item.getQuantity());
+            } catch (Exception e) {
+                throw new RuntimeException(
+                        "Failed to increase stock for dish " + item.getDishId(), e);
+            }
+        }
         markEventAsProcessed(event.getEventId());
     }
 
