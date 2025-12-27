@@ -15,7 +15,7 @@ COPY --from=build /app/target/*.jar app.jar
 
 VOLUME ["/uploads"]
 
-EXPOSE 8081
+EXPOSE 8083
 ENV SPRING_PROFILES_ACTIVE=production
 
 ENTRYPOINT ["java", "-jar", "app.jar"]

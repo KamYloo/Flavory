@@ -21,6 +21,11 @@ spring:
               uri: lb://order-service
               predicates:
                 - Path=/api/orders/**
+
+            - id: delivery-service-route
+              uri: lb://delivery-service
+              predicates:
+                - Path=/api/deliveries/**, /api/webhooks/stuart/**
           discovery:
             locator:
               enabled: false
