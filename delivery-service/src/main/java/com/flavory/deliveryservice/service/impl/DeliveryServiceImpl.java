@@ -100,6 +100,17 @@ public class DeliveryServiceImpl implements DeliveryService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public DeliveryResponse getDeliveryById(Long deliveryId, Authentication authentication) {
+        String userId = jwtService.extractAuth0Id(authentication);
+        Delivery delivery = getDeliveryOrThrow(deliveryId);
+
+        validateDeliveryAccess(delivery, userId);
+
+        return deliveryMapper.toResponse(delivery);
+    }
+
+    @Override
     public Delivery getDeliveryOrThrow(Long deliveryId) {
         return deliveryRepository.findById(deliveryId)
                 .orElseThrow(() -> new DeliveryNotFoundException(deliveryId));

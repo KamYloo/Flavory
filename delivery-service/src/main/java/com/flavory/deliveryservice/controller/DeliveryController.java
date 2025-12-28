@@ -24,4 +24,13 @@ public class DeliveryController {
         DeliveryResponse response = deliveryService.getDeliveryByOrderId(orderId, authentication);
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/{deliveryId}")
+    public ResponseEntity<DeliveryResponse> getDeliveryById(
+            @PathVariable Long deliveryId,
+            Authentication authentication) {
+
+        DeliveryResponse response = deliveryService.getDeliveryById(deliveryId, authentication);
+        return ResponseEntity.ok(response);
+    }
 }

@@ -9,5 +9,6 @@ import org.springframework.security.core.Authentication;
 public interface  DeliveryService {
     void createDeliveryFromEvent(OrderReadyEvent event);
     DeliveryResponse getDeliveryByOrderId(Long orderId, Authentication authentication);
+    DeliveryResponse getDeliveryById(Long deliveryId, Authentication authentication);
     Delivery getDeliveryOrThrow(Long deliveryId);
 }
