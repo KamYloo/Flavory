@@ -16,6 +16,9 @@ import java.util.List;
 public class CreateOrderRequest {
 
     @NotNull(message = "ID kucharza jest wymagane")
+    private Long cookIdlong;
+
+    @NotNull(message = "ID kucharza jest wymagane")
     @NotBlank(message = "ID kucharza nie może być puste")
     private String cookId;
 

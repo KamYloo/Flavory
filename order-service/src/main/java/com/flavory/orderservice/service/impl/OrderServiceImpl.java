@@ -3,16 +3,14 @@ package com.flavory.orderservice.service.impl;
 import com.flavory.orderservice.client.DishServiceClient;
 import com.flavory.orderservice.client.UserServiceClient;
 import com.flavory.orderservice.dto.request.*;
-import com.flavory.orderservice.dto.response.AddressDto;
-import com.flavory.orderservice.dto.response.DishDto;
-import com.flavory.orderservice.dto.response.OrderResponse;
-import com.flavory.orderservice.dto.response.OrderSummaryResponse;
+import com.flavory.orderservice.dto.response.*;
 import com.flavory.orderservice.entity.DeliveryAddress;
 import com.flavory.orderservice.entity.Order;
 import com.flavory.orderservice.entity.OrderItem;
 import com.flavory.orderservice.event.outbound.OrderCancelledEvent;
 import com.flavory.orderservice.event.outbound.OrderCompletedEvent;
 import com.flavory.orderservice.event.outbound.OrderPlacedEvent;
+import com.flavory.orderservice.event.outbound.OrderReadyEvent;
 import com.flavory.orderservice.exception.AddressNotFoundException;
 import com.flavory.orderservice.exception.DishNotAvailableException;
 import com.flavory.orderservice.exception.OrderNotFoundException;
@@ -59,14 +57,17 @@ public class OrderServiceImpl implements OrderService {
         orderValidator.validateOrderCreation(request.getItems());
 
         String customerId = jwtService.extractAuth0Id(authentication);
+        String customerFullName = jwtService.extractUserName(authentication);
+        UserDto cookProfile = userServiceClient.getUserProfile(request.getCookIdlong());
 
-        AddressDto addressDto = userServiceClient.getDefaultAddressByAuth0Id(customerId);
-        if (addressDto == null) {
+        AddressDto customerAddress = userServiceClient.getDefaultAddressByAuth0Id(customerId);
+        AddressDto cookAddress = userServiceClient.getDefaultAddressByAuth0Id(request.getCookId());
+        if (customerAddress == null || cookAddress == null) {
             throw new AddressNotFoundException();
         }
 
         List<DishDto> dishes = fetchAndValidateDishes(request.getItems());
-        Order order = buildOrder(request, customerId, dishes, addressDto);
+        Order order = buildOrder(request, customerId, dishes, customerAddress, cookAddress, cookProfile, customerFullName);
         orderValidator.validateOrderAmount(order.getTotalAmount());
 
         order = orderRepository.save(order);
@@ -139,6 +140,10 @@ public class OrderServiceImpl implements OrderService {
 
         orderValidator.validateStatusTransition(order.getStatus(), newStatus);
         order.updateStatus(newStatus);
+
+        if (newStatus == Order.OrderStatus.READY) {
+            publishOrderReadyEvent(order);
+        }
 
         if (newStatus == Order.OrderStatus.DELIVERED) {
             order.setActualDeliveryTime(LocalDateTime.now());
@@ -233,16 +238,20 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private Order buildOrder(CreateOrderRequest request, String customerId,
-                             List<DishDto> dishes, AddressDto addressDto) {
+                             List<DishDto> dishes, AddressDto customerAddress, AddressDto cookAddress,
+                             UserDto cookProfile, String customerFullName) {
         Map<Long, DishDto> dishMap = dishes.stream()
                 .collect(Collectors.toMap(DishDto::getId, dish -> dish));
 
         Order order = Order.builder()
                 .customerId(customerId)
+                .customerName(customerFullName)
                 .cookId(request.getCookId())
+                .cookName(cookProfile.getFullName())
                 .status(Order.OrderStatus.PENDING)
                 .customerNotes(request.getCustomerNotes())
-                .deliveryAddress(buildDeliveryAddress(addressDto, request))
+                .deliveryAddress(mapToEntityAddress(customerAddress, request))
+                .pickupAddress(mapToEntityAddress(cookAddress, null))
                 .items(new ArrayList<>())
                 .build();
 
@@ -282,7 +291,12 @@ public class OrderServiceImpl implements OrderService {
         return order;
     }
 
-    private DeliveryAddress buildDeliveryAddress(AddressDto addressDto, CreateOrderRequest request) {
+    private DeliveryAddress mapToEntityAddress(AddressDto addressDto, CreateOrderRequest request) {
+        if (addressDto == null) {
+            return null;
+        }
+
+        String instructions = (request != null) ? request.getDeliveryInstructions() : null;
         return DeliveryAddress.builder()
                 .street(addressDto.getStreet())
                 .city(addressDto.getCity())
@@ -291,7 +305,7 @@ public class OrderServiceImpl implements OrderService {
                 .phoneNumber(addressDto.getPhoneNumber())
                 .latitude(addressDto.getLatitude())
                 .longitude(addressDto.getLongitude())
-                .deliveryInstructions(request.getDeliveryInstructions())
+                .deliveryInstructions(instructions)
                 .build();
     }
 
@@ -359,5 +373,47 @@ public class OrderServiceImpl implements OrderService {
                 .build();
 
         orderEventPublisher.publishOrderCancelled(event);
+    }
+
+    private void publishOrderReadyEvent(Order order) {
+        OrderReadyEvent event = OrderReadyEvent.builder()
+                .orderId(order.getId())
+                .customerId(order.getCustomerId())
+                .cookId(order.getCookId())
+                .pickupAddress(buildPickupAddress(order))
+                .dropoffAddress(buildDropoffAddress(order))
+                .readyAt(LocalDateTime.now())
+                .eventId(UUID.randomUUID().toString())
+                .build();
+
+        orderEventPublisher.publishOrderReady(event);
+    }
+
+    private OrderReadyEvent.PickupAddress buildPickupAddress(Order order) {
+        return OrderReadyEvent.PickupAddress.builder()
+                .street("ul. Kucharza 1")
+                .city("Warsaw")
+                .postalCode("00-001")
+                .phoneNumber("+48123456789")
+                .contactName("Chef Name")
+                .latitude(52.2297)
+                .longitude(21.0122)
+                .build();
+    }
+
+    private OrderReadyEvent.DropoffAddress buildDropoffAddress(Order order) {
+        DeliveryAddress address = order.getDeliveryAddress();
+
+        return OrderReadyEvent.DropoffAddress.builder()
+                .street(address.getStreet())
+                .city(address.getCity())
+                .postalCode(address.getPostalCode())
+                .apartmentNumber(address.getApartmentNumber())
+                .phoneNumber(address.getPhoneNumber())
+                .contactName("Customer") // TODO: pobierz imię z User Service
+                .instructions(address.getDeliveryInstructions())
+                .latitude(address.getLatitude())
+                .longitude(address.getLongitude())
+                .build();
     }
 }

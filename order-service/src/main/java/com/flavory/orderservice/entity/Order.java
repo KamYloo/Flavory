@@ -35,6 +35,12 @@ public class Order {
     @Column(nullable = false, name = "cook_id")
     private String cookId;
 
+    @Column(name = "customer_name")
+    private String customerName;
+
+    @Column(name = "cook_name")
+    private String cookName;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     @Builder.Default
@@ -55,6 +61,31 @@ public class Order {
     private BigDecimal totalAmount;
 
     @Embedded
+    @AttributeOverrides({
+            @AttributeOverride(name = "street", column = @Column(name = "pickup_street")),
+            @AttributeOverride(name = "city", column = @Column(name = "pickup_city")),
+            @AttributeOverride(name = "postalCode", column = @Column(name = "pickup_postal_code")),
+            @AttributeOverride(name = "apartmentNumber", column = @Column(name = "pickup_apartment_number")),
+            @AttributeOverride(name = "floor", column = @Column(name = "pickup_floor")),
+            @AttributeOverride(name = "phoneNumber", column = @Column(name = "pickup_phone_number")),
+            @AttributeOverride(name = "deliveryInstructions", column = @Column(name = "pickup_instructions")),
+            @AttributeOverride(name = "latitude", column = @Column(name = "pickup_latitude")),
+            @AttributeOverride(name = "longitude", column = @Column(name = "pickup_longitude"))
+    })
+    private DeliveryAddress pickupAddress;
+
+    @Embedded
+    @AttributeOverrides({
+            @AttributeOverride(name = "street", column = @Column(name = "dropoff_street")),
+            @AttributeOverride(name = "city", column = @Column(name = "dropoff_city")),
+            @AttributeOverride(name = "postalCode", column = @Column(name = "dropoff_postal_code")),
+            @AttributeOverride(name = "apartmentNumber", column = @Column(name = "dropoff_apartment_number")),
+            @AttributeOverride(name = "floor", column = @Column(name = "dropoff_floor")),
+            @AttributeOverride(name = "phoneNumber", column = @Column(name = "dropoff_phone_number")),
+            @AttributeOverride(name = "deliveryInstructions", column = @Column(name = "dropoff_instructions")),
+            @AttributeOverride(name = "latitude", column = @Column(name = "dropoff_latitude")),
+            @AttributeOverride(name = "longitude", column = @Column(name = "dropoff_longitude"))
+    })
     private DeliveryAddress deliveryAddress;
 
     @Column(name = "customer_notes", length = 500)

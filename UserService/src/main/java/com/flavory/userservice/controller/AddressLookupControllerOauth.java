@@ -15,17 +15,11 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class AddressLookupControllerOauth {
     private final AddressService addressService;
-    private final JwtService jwtService;
 
     @GetMapping("/by-auth0/{auth0Id}/default")
     public ResponseEntity<AddressResponse> getDefaultAddressByAuth0Id(
-            @PathVariable String auth0Id,
-            Authentication authentication) {
+            @PathVariable String auth0Id) {
 
-        String currentAuth0Id = jwtService.extractAuth0Id(authentication);
-        if (!currentAuth0Id.equals(auth0Id)) {
-            throw new UnauthorizedAccessException();
-        }
         AddressResponse address = addressService.getDefaultAddressByAuth0Id(auth0Id);
         return ResponseEntity.ok(address);
     }
