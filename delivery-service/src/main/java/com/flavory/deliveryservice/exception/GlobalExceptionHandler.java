@@ -40,6 +40,16 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(errorResponse);
     }
 
+    @ExceptionHandler(DeliveryNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleDeliveryNotFoundException(
+            DeliveryNotFoundException ex,
+            WebRequest request) {
+
+        ErrorResponse errorResponse = createErrorResponse(
+                HttpStatus.NOT_FOUND, ex.getMessage(), request);
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorResponse);
+    }
+
     @ExceptionHandler(StuartApiException.class)
     public ResponseEntity<ErrorResponse> handleStuartApiException(
             StuartApiException ex,
@@ -48,6 +58,16 @@ public class GlobalExceptionHandler {
         ErrorResponse errorResponse = createErrorResponse(
                 HttpStatus.BAD_GATEWAY, ex.getMessage(), request);
         return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(errorResponse);
+    }
+
+    @ExceptionHandler(UnauthorizedDeliveryAccessException.class)
+    public ResponseEntity<ErrorResponse> handleUnauthorizedDeliveryAccessException(
+            UnauthorizedDeliveryAccessException ex,
+            WebRequest request) {
+
+        ErrorResponse errorResponse = createErrorResponse(
+                HttpStatus.FORBIDDEN, ex.getMessage(), request);
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(errorResponse);
     }
 
     @ExceptionHandler(AccessDeniedException.class)

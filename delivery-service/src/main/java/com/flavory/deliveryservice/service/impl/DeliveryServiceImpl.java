@@ -1,11 +1,15 @@
 package com.flavory.deliveryservice.service.impl;
 
 import com.flavory.deliveryservice.dto.request.StuartJobRequest;
+import com.flavory.deliveryservice.dto.response.DeliveryResponse;
 import com.flavory.deliveryservice.dto.response.StuartJobResponse;
 import com.flavory.deliveryservice.entity.Delivery;
 import com.flavory.deliveryservice.entity.DeliveryAddress;
 import com.flavory.deliveryservice.event.inbound.OrderReadyEvent;
+import com.flavory.deliveryservice.exception.DeliveryNotFoundException;
 import com.flavory.deliveryservice.exception.StuartApiException;
+import com.flavory.deliveryservice.exception.UnauthorizedDeliveryAccessException;
+import com.flavory.deliveryservice.mapper.DeliveryMapper;
 import com.flavory.deliveryservice.repository.DeliveryRepository;
 import com.flavory.deliveryservice.security.JwtService;
 import com.flavory.deliveryservice.service.DeliveryService;
@@ -13,6 +17,7 @@ import com.flavory.deliveryservice.service.stuart.StuartApiService;
 import com.flavory.deliveryservice.service.stuart.StuartRequestBuilder;
 import com.flavory.deliveryservice.validator.DeliveryValidator;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +30,7 @@ public class DeliveryServiceImpl implements DeliveryService {
     private final StuartApiService stuartApiService;
     private final DeliveryValidator deliveryValidator;
     private final StuartRequestBuilder stuartRequestBuilder;
+    private final DeliveryMapper deliveryMapper;
 
     @Override
     @Transactional
@@ -79,6 +85,30 @@ public class DeliveryServiceImpl implements DeliveryService {
         }
 
         delivery = deliveryRepository.save(delivery);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public DeliveryResponse getDeliveryByOrderId(Long orderId, Authentication authentication) {
+        String userId = jwtService.extractAuth0Id(authentication);
+        Delivery delivery = deliveryRepository.findByOrderId(orderId)
+                .orElseThrow(() -> new DeliveryNotFoundException("Delivery for order " + orderId + " not found"));
+
+        validateDeliveryAccess(delivery, userId);
+
+        return deliveryMapper.toResponse(delivery);
+    }
+
+    @Override
+    public Delivery getDeliveryOrThrow(Long deliveryId) {
+        return deliveryRepository.findById(deliveryId)
+                .orElseThrow(() -> new DeliveryNotFoundException(deliveryId));
+    }
+
+    private void validateDeliveryAccess(Delivery delivery, String userId) {
+        if (!delivery.getCustomerId().equals(userId) && !delivery.getCookId().equals(userId)) {
+            throw new UnauthorizedDeliveryAccessException();
+        }
     }
 
     private DeliveryAddress mapPickupAddress(OrderReadyEvent.PickupAddress address) {
