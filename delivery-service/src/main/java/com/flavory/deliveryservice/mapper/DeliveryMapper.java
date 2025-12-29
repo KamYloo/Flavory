@@ -1,6 +1,7 @@
 package com.flavory.deliveryservice.mapper;
 
 import com.flavory.deliveryservice.dto.response.DeliveryResponse;
+import com.flavory.deliveryservice.dto.response.DeliverySummaryResponse;
 import com.flavory.deliveryservice.entity.Delivery;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -12,6 +13,10 @@ public interface DeliveryMapper {
     @Mapping(source = "status", target = "status", qualifiedByName = "deliveryStatusToString")
     @Mapping(source = "status", target = "statusDisplayName", qualifiedByName = "deliveryStatusToDisplayName")
     DeliveryResponse toResponse(Delivery delivery);
+
+    @Mapping(source = "status", target = "status", qualifiedByName = "deliveryStatusToString")
+    @Mapping(source = "status", target = "statusDisplayName", qualifiedByName = "deliveryStatusToDisplayName")
+    DeliverySummaryResponse toSummaryResponse(Delivery delivery);
 
     @Named("deliveryStatusToString")
     default String deliveryStatusToString(Delivery.DeliveryStatus status) {

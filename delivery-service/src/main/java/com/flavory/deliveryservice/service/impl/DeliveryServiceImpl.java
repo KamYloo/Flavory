@@ -2,6 +2,7 @@ package com.flavory.deliveryservice.service.impl;
 
 import com.flavory.deliveryservice.dto.request.StuartJobRequest;
 import com.flavory.deliveryservice.dto.response.DeliveryResponse;
+import com.flavory.deliveryservice.dto.response.DeliverySummaryResponse;
 import com.flavory.deliveryservice.dto.response.StuartJobResponse;
 import com.flavory.deliveryservice.entity.Delivery;
 import com.flavory.deliveryservice.entity.DeliveryAddress;
@@ -17,6 +18,8 @@ import com.flavory.deliveryservice.service.stuart.StuartApiService;
 import com.flavory.deliveryservice.service.stuart.StuartRequestBuilder;
 import com.flavory.deliveryservice.validator.DeliveryValidator;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -108,6 +111,15 @@ public class DeliveryServiceImpl implements DeliveryService {
         validateDeliveryAccess(delivery, userId);
 
         return deliveryMapper.toResponse(delivery);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<DeliverySummaryResponse> getCustomerDeliveries(Pageable pageable, Authentication authentication) {
+        String customerId = jwtService.extractAuth0Id(authentication);
+
+        Page<Delivery> deliveries = deliveryRepository.findByCustomerId(customerId, pageable);
+        return deliveries.map(deliveryMapper::toSummaryResponse);
     }
 
     @Override
