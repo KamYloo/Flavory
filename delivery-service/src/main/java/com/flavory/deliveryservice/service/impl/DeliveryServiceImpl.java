@@ -130,6 +130,32 @@ public class DeliveryServiceImpl implements DeliveryService {
     }
 
     @Override
+    @Transactional
+    public DeliveryResponse cancelDelivery(Long deliveryId, String reason, Authentication authentication) {
+        String userId = jwtService.extractAuth0Id(authentication);
+        Delivery delivery = getDeliveryOrThrow(deliveryId);
+
+        validateDeliveryAccess(delivery, userId);
+
+        deliveryValidator.validateDeliveryCancellation(delivery);
+
+        if (delivery.getStuartJobId() != null) {
+            try {
+                Long stuartJobId = Long.parseLong(delivery.getStuartJobId());
+                stuartApiService.cancelJob(stuartJobId);
+
+            } catch (StuartApiException ignored) {
+            }
+        }
+
+        delivery.setStatus(Delivery.DeliveryStatus.CANCELLED);
+        delivery.setCancellationReason(reason);
+        delivery = deliveryRepository.save(delivery);
+
+        return deliveryMapper.toResponse(delivery);
+    }
+
+    @Override
     public Delivery getDeliveryOrThrow(Long deliveryId) {
         return deliveryRepository.findById(deliveryId)
                 .orElseThrow(() -> new DeliveryNotFoundException(deliveryId));

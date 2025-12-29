@@ -10,10 +10,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/deliveries")
@@ -47,6 +44,29 @@ public class DeliveryController {
 
         Page<DeliverySummaryResponse> response = deliveryService.getCustomerDeliveries(
                 pageable, authentication);
+
+        return ResponseEntity.ok(response);
+    }
+    @GetMapping("/cook/me")
+    public ResponseEntity<Page<DeliverySummaryResponse>> getMyCookDeliveries(
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC)
+            Pageable pageable,
+            Authentication authentication) {
+
+        Page<DeliverySummaryResponse> response = deliveryService.getCookDeliveries(
+                pageable, authentication);
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{deliveryId}/cancel")
+    public ResponseEntity<DeliveryResponse> cancelDelivery(
+            @PathVariable Long deliveryId,
+            @RequestParam String reason,
+            Authentication authentication) {
+
+        DeliveryResponse response = deliveryService.cancelDelivery(
+                deliveryId, reason, authentication);
 
         return ResponseEntity.ok(response);
     }

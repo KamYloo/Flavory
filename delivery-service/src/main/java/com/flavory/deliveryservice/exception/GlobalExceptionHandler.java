@@ -60,6 +60,16 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(errorResponse);
     }
 
+    @ExceptionHandler(InvalidDeliveryStatusException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidDeliveryStatusException(
+            InvalidDeliveryStatusException ex,
+            WebRequest request) {
+
+        ErrorResponse errorResponse = createErrorResponse(
+                HttpStatus.BAD_REQUEST, ex.getMessage(), request);
+        return ResponseEntity.badRequest().body(errorResponse);
+    }
+
     @ExceptionHandler(UnauthorizedDeliveryAccessException.class)
     public ResponseEntity<ErrorResponse> handleUnauthorizedDeliveryAccessException(
             UnauthorizedDeliveryAccessException ex,

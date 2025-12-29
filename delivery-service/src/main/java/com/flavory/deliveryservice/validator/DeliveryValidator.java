@@ -1,6 +1,8 @@
 package com.flavory.deliveryservice.validator;
 
+import com.flavory.deliveryservice.entity.Delivery;
 import com.flavory.deliveryservice.entity.DeliveryAddress;
+import com.flavory.deliveryservice.exception.InvalidDeliveryStatusException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -37,6 +39,13 @@ public class DeliveryValidator {
                         String.format("Delivery distance %.2f km exceeds maximum allowed %d km",
                                 distance, maxDeliveryDistanceKm.intValue()));
             }
+        }
+    }
+
+    public void validateDeliveryCancellation(Delivery delivery) {
+        if (!delivery.canBeCancelled()) {
+            throw new InvalidDeliveryStatusException(
+                    "Delivery cannot be cancelled in status: " + delivery.getStatus());
         }
     }
 

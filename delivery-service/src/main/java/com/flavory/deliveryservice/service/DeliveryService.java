@@ -15,5 +15,6 @@ public interface  DeliveryService {
     DeliveryResponse getDeliveryById(Long deliveryId, Authentication authentication);
     Page<DeliverySummaryResponse> getCustomerDeliveries(Pageable pageable, Authentication authentication);
     Page<DeliverySummaryResponse> getCookDeliveries(Pageable pageable, Authentication authentication);
+    DeliveryResponse cancelDelivery(Long deliveryId, String reason, Authentication authentication);
     Delivery getDeliveryOrThrow(Long deliveryId);
 }
