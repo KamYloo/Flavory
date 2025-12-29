@@ -117,8 +117,15 @@ public class DeliveryServiceImpl implements DeliveryService {
     @Transactional(readOnly = true)
     public Page<DeliverySummaryResponse> getCustomerDeliveries(Pageable pageable, Authentication authentication) {
         String customerId = jwtService.extractAuth0Id(authentication);
-
         Page<Delivery> deliveries = deliveryRepository.findByCustomerId(customerId, pageable);
+        return deliveries.map(deliveryMapper::toSummaryResponse);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<DeliverySummaryResponse> getCookDeliveries(Pageable pageable, Authentication authentication) {
+        String cookId = jwtService.extractAuth0Id(authentication);
+        Page<Delivery> deliveries = deliveryRepository.findByCookId(cookId, pageable);
         return deliveries.map(deliveryMapper::toSummaryResponse);
     }
 
