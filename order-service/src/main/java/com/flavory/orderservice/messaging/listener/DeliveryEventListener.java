@@ -3,6 +3,7 @@ package com.flavory.orderservice.messaging.listener;
 import com.flavory.orderservice.config.RabbitMQConfig;
 import com.flavory.orderservice.entity.Order;
 import com.flavory.orderservice.entity.ProcessedEventEntity;
+import com.flavory.orderservice.event.inbound.DeliveryCompletedEvent;
 import com.flavory.orderservice.event.inbound.DeliveryStartedEvent;
 import com.flavory.orderservice.exception.OrderNotFoundException;
 import com.flavory.orderservice.repository.OrderRepository;
@@ -33,6 +34,23 @@ public class DeliveryEventListener {
         if (event.getTrackingUrl() != null) {
             order.setGlovoTrackingUrl(event.getTrackingUrl());
         }
+        orderRepository.save(order);
+        markEventAsProcessed(event.getEventId());
+    }
+
+    @Transactional
+    @RabbitListener(queues = "order.delivery.completed.queue")
+    public void handleDeliveryCompleted(DeliveryCompletedEvent event) {
+        if (isEventProcessed(event.getEventId())) {
+            return;
+        }
+
+        Order order = orderRepository.findById(event.getOrderId())
+                .orElseThrow(() -> new OrderNotFoundException(event.getOrderId()));
+
+        order.updateStatus(Order.OrderStatus.DELIVERED);
+        order.setActualDeliveryTime(event.getCompletedAt());
+
         orderRepository.save(order);
         markEventAsProcessed(event.getEventId());
     }
