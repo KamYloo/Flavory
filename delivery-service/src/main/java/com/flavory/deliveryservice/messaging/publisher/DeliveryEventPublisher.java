@@ -1,6 +1,7 @@
 package com.flavory.deliveryservice.messaging.publisher;
 
 import com.flavory.deliveryservice.config.RabbitMQConfig;
+import com.flavory.deliveryservice.event.outbound.DeliveryCompletedEvent;
 import com.flavory.deliveryservice.event.outbound.DeliveryPickedUpEvent;
 import com.flavory.deliveryservice.event.outbound.DeliveryStartedEvent;
 import lombok.RequiredArgsConstructor;
@@ -36,4 +37,15 @@ public class DeliveryEventPublisher {
         }
     }
 
+    public void publishDeliveryCompleted(DeliveryCompletedEvent event) {
+        try {
+            rabbitTemplate.convertAndSend(
+                    RabbitMQConfig.DELIVERY_EXCHANGE,
+                    RabbitMQConfig.DELIVERY_COMPLETED_ROUTING_KEY,
+                    event
+            );
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to publish DeliveryCompletedEvent", e);
+        }
+    }
 }
