@@ -7,11 +7,13 @@ import com.flavory.deliveryservice.dto.external.StuartJobResponse;
 import com.flavory.deliveryservice.entity.Delivery;
 import com.flavory.deliveryservice.entity.DeliveryAddress;
 import com.flavory.deliveryservice.event.inbound.OrderReadyEvent;
+import com.flavory.deliveryservice.event.outbound.DeliveryStartedEvent;
 import com.flavory.deliveryservice.exception.DeliveryNotFoundException;
 import com.flavory.deliveryservice.exception.InvalidDeliveryStatusException;
 import com.flavory.deliveryservice.exception.StuartApiException;
 import com.flavory.deliveryservice.exception.UnauthorizedDeliveryAccessException;
 import com.flavory.deliveryservice.mapper.DeliveryMapper;
+import com.flavory.deliveryservice.messaging.publisher.DeliveryEventPublisher;
 import com.flavory.deliveryservice.repository.DeliveryRepository;
 import com.flavory.deliveryservice.security.JwtService;
 import com.flavory.deliveryservice.service.DeliveryService;
@@ -27,6 +29,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -38,6 +41,7 @@ public class DeliveryServiceImpl implements DeliveryService {
     private final DeliveryValidator deliveryValidator;
     private final StuartRequestBuilder stuartRequestBuilder;
     private final DeliveryMapper deliveryMapper;
+    private final DeliveryEventPublisher deliveryEventPublisher;
 
     @Override
     @Transactional
@@ -92,6 +96,7 @@ public class DeliveryServiceImpl implements DeliveryService {
         }
 
         delivery = deliveryRepository.save(delivery);
+        publishDeliveryStartedEvent(delivery);
     }
 
     @Override
@@ -246,4 +251,19 @@ public class DeliveryServiceImpl implements DeliveryService {
             default -> null;
         };
     }
+
+    private void publishDeliveryStartedEvent(Delivery delivery) {
+        DeliveryStartedEvent event = DeliveryStartedEvent.builder()
+                .deliveryId(delivery.getId())
+                .orderId(delivery.getOrderId())
+                .trackingUrl(delivery.getTrackingUrl())
+                .deliveryFee(delivery.getDeliveryFee())
+                .estimatedDeliveryTime(delivery.getEstimatedDeliveryTime())
+                .startedAt(LocalDateTime.now())
+                .eventId(UUID.randomUUID().toString())
+                .build();
+
+        deliveryEventPublisher.publishDeliveryStarted(event);
+    }
+
 }
