@@ -7,6 +7,7 @@ import com.flavory.deliveryservice.dto.external.StuartJobResponse;
 import com.flavory.deliveryservice.entity.Delivery;
 import com.flavory.deliveryservice.entity.DeliveryAddress;
 import com.flavory.deliveryservice.event.inbound.OrderReadyEvent;
+import com.flavory.deliveryservice.event.outbound.DeliveryPickedUpEvent;
 import com.flavory.deliveryservice.event.outbound.DeliveryStartedEvent;
 import com.flavory.deliveryservice.exception.DeliveryNotFoundException;
 import com.flavory.deliveryservice.exception.InvalidDeliveryStatusException;
@@ -165,6 +166,7 @@ public class DeliveryServiceImpl implements DeliveryService {
         switch (mappedStatus) {
             case PICKED_UP -> {
                 delivery.setActualPickupTime(LocalDateTime.now());
+                publishDeliveryPickedUpEvent(delivery);
             }
             case DELIVERED -> {
                 delivery.setActualDeliveryTime(LocalDateTime.now());
@@ -266,4 +268,16 @@ public class DeliveryServiceImpl implements DeliveryService {
         deliveryEventPublisher.publishDeliveryStarted(event);
     }
 
+    private void publishDeliveryPickedUpEvent(Delivery delivery) {
+        DeliveryPickedUpEvent event = DeliveryPickedUpEvent.builder()
+                .deliveryId(delivery.getId())
+                .orderId(delivery.getOrderId())
+                .courierName(delivery.getCourierName())
+                .courierPhone(delivery.getCourierPhone())
+                .pickedUpAt(LocalDateTime.now())
+                .eventId(UUID.randomUUID().toString())
+                .build();
+
+        deliveryEventPublisher.publishDeliveryPickedUp(event);
+    }
 }
