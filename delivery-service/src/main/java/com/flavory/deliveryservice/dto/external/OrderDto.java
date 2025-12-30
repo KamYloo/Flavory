@@ -1,4 +1,4 @@
-package com.flavory.deliveryservice.dto.response;
+package com.flavory.deliveryservice.dto.external;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

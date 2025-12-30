@@ -1,8 +1,8 @@
 package com.flavory.deliveryservice.client;
 
 import com.flavory.deliveryservice.dto.request.StuartJobRequest;
-import com.flavory.deliveryservice.dto.response.StuartAuthResponse;
-import com.flavory.deliveryservice.dto.response.StuartJobResponse;
+import com.flavory.deliveryservice.dto.external.StuartAuthResponse;
+import com.flavory.deliveryservice.dto.external.StuartJobResponse;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;

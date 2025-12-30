@@ -3,7 +3,7 @@ package com.flavory.deliveryservice.service.impl;
 import com.flavory.deliveryservice.dto.request.StuartJobRequest;
 import com.flavory.deliveryservice.dto.response.DeliveryResponse;
 import com.flavory.deliveryservice.dto.response.DeliverySummaryResponse;
-import com.flavory.deliveryservice.dto.response.StuartJobResponse;
+import com.flavory.deliveryservice.dto.external.StuartJobResponse;
 import com.flavory.deliveryservice.entity.Delivery;
 import com.flavory.deliveryservice.entity.DeliveryAddress;
 import com.flavory.deliveryservice.event.inbound.OrderReadyEvent;
@@ -17,12 +17,15 @@ import com.flavory.deliveryservice.service.DeliveryService;
 import com.flavory.deliveryservice.service.stuart.StuartApiService;
 import com.flavory.deliveryservice.service.stuart.StuartRequestBuilder;
 import com.flavory.deliveryservice.validator.DeliveryValidator;
+import com.flavory.deliveryservice.entity.Delivery.DeliveryStatus;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -131,6 +134,38 @@ public class DeliveryServiceImpl implements DeliveryService {
 
     @Override
     @Transactional
+    public void updateDeliveryStatus(String stuartJobId, String newStatus, String courierName, String courierPhone) {
+        Delivery delivery = deliveryRepository.findByStuartJobId(stuartJobId)
+                .orElseThrow(() -> new DeliveryNotFoundException("Delivery with Stuart job ID " + stuartJobId + " not found"));
+        Delivery.DeliveryStatus mappedStatus = mapStuartStatus(newStatus);
+
+        if (mappedStatus == null) {
+            return;
+        }
+
+        delivery.updateStatus(mappedStatus);
+
+        if (courierName != null) {
+            delivery.setCourierName(courierName);
+        }
+        if (courierPhone != null) {
+            delivery.setCourierPhone(courierPhone);
+        }
+
+        switch (mappedStatus) {
+            case PICKED_UP -> {
+                delivery.setActualPickupTime(LocalDateTime.now());
+            }
+            case DELIVERED -> {
+                delivery.setActualDeliveryTime(LocalDateTime.now());
+            }
+        }
+
+        deliveryRepository.save(delivery);
+    }
+
+    @Override
+    @Transactional
     public DeliveryResponse cancelDelivery(Long deliveryId, String reason, Authentication authentication) {
         String userId = jwtService.extractAuth0Id(authentication);
         Delivery delivery = getDeliveryOrThrow(deliveryId);
@@ -193,5 +228,17 @@ public class DeliveryServiceImpl implements DeliveryService {
                 .latitude(address.getLatitude())
                 .longitude(address.getLongitude())
                 .build();
+    }
+
+    private DeliveryStatus mapStuartStatus(String stuartStatus) {
+        return switch (stuartStatus.toUpperCase()) {
+            case "SCHEDULED" -> DeliveryStatus.SCHEDULED;
+            case "DISPATCHED", "PICKING" -> DeliveryStatus.COURIER_ASSIGNED;
+            case "PICKED_UP", "PICKED" -> DeliveryStatus.PICKED_UP;
+            case "DROPPING" -> DeliveryStatus.IN_TRANSIT;
+            case "DELIVERED" -> DeliveryStatus.DELIVERED;
+            case "CANCELLED" -> DeliveryStatus.CANCELLED;
+            default -> null;
+        };
     }
 }
