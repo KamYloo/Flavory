@@ -8,6 +8,7 @@ import com.flavory.deliveryservice.entity.Delivery;
 import com.flavory.deliveryservice.entity.DeliveryAddress;
 import com.flavory.deliveryservice.event.inbound.OrderReadyEvent;
 import com.flavory.deliveryservice.exception.DeliveryNotFoundException;
+import com.flavory.deliveryservice.exception.InvalidDeliveryStatusException;
 import com.flavory.deliveryservice.exception.StuartApiException;
 import com.flavory.deliveryservice.exception.UnauthorizedDeliveryAccessException;
 import com.flavory.deliveryservice.mapper.DeliveryMapper;
@@ -72,7 +73,7 @@ public class DeliveryServiceImpl implements DeliveryService {
 
             delivery.setStuartJobId(stuartResponse.getId().toString());
             delivery.setTrackingUrl(stuartResponse.getTrackingUrl());
-            delivery.setStatus(Delivery.DeliveryStatus.SCHEDULED);
+            delivery.updateStatus(Delivery.DeliveryStatus.SCHEDULED);
             delivery.setEstimatedPickupTime(stuartResponse.getPickupAt());
             delivery.setEstimatedDeliveryTime(stuartResponse.getDropoffAt());
 
@@ -85,7 +86,7 @@ public class DeliveryServiceImpl implements DeliveryService {
             }
 
         } catch (StuartApiException e) {
-            delivery.setStatus(Delivery.DeliveryStatus.FAILED);
+            delivery.updateStatus(Delivery.DeliveryStatus.FAILED);
             deliveryRepository.save(delivery);
             throw e;
         }
@@ -143,7 +144,11 @@ public class DeliveryServiceImpl implements DeliveryService {
             return;
         }
 
-        delivery.updateStatus(mappedStatus);
+        try {
+            delivery.updateStatus(mappedStatus);
+        } catch (InvalidDeliveryStatusException e) {
+            return;
+        }
 
         if (courierName != null) {
             delivery.setCourierName(courierName);
@@ -183,7 +188,7 @@ public class DeliveryServiceImpl implements DeliveryService {
             }
         }
 
-        delivery.setStatus(Delivery.DeliveryStatus.CANCELLED);
+        delivery.updateStatus(Delivery.DeliveryStatus.CANCELLED);
         delivery.setCancellationReason(reason);
         delivery = deliveryRepository.save(delivery);
 

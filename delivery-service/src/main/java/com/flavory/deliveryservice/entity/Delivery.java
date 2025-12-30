@@ -1,5 +1,6 @@
 package com.flavory.deliveryservice.entity;
 
+import com.flavory.deliveryservice.exception.InvalidDeliveryStatusException;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -118,6 +119,11 @@ public class Delivery {
     private Long version;
 
     public void updateStatus(DeliveryStatus newStatus) {
+        if (this.status == newStatus) {
+            return;
+        }
+
+        validateStatusTransition(this.status, newStatus);
         this.status = newStatus;
     }
 
@@ -146,6 +152,36 @@ public class Delivery {
 
         DeliveryStatus(String displayName) {
             this.displayName = displayName;
+        }
+    }
+
+    private void validateStatusTransition(DeliveryStatus from, DeliveryStatus to) {
+        boolean isValid = switch (from) {
+            case PENDING -> to == DeliveryStatus.SCHEDULED ||
+                    to == DeliveryStatus.CANCELLED ||
+                    to == DeliveryStatus.FAILED;
+
+            case SCHEDULED -> to == DeliveryStatus.COURIER_ASSIGNED ||
+                    to == DeliveryStatus.CANCELLED ||
+                    to == DeliveryStatus.FAILED;
+
+            case COURIER_ASSIGNED -> to == DeliveryStatus.PICKED_UP ||
+                    to == DeliveryStatus.CANCELLED ||
+                    to == DeliveryStatus.FAILED;
+
+            case PICKED_UP -> to == DeliveryStatus.IN_TRANSIT ||
+                    to == DeliveryStatus.CANCELLED ||
+                    to == DeliveryStatus.FAILED;
+
+            case IN_TRANSIT -> to == DeliveryStatus.DELIVERED ||
+                    to == DeliveryStatus.CANCELLED ||
+                    to == DeliveryStatus.FAILED;
+
+            case DELIVERED, CANCELLED, FAILED -> false;
+        };
+
+        if (!isValid) {
+            throw new InvalidDeliveryStatusException(from, to);
         }
     }
 }
