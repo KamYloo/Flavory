@@ -1,11 +1,13 @@
 package com.flavory.deliveryservice.dto.request;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
@@ -25,6 +27,10 @@ public class StuartJobRequest {
 
         @JsonProperty("assignment_code")
         private String assignmentCode;
+
+        @JsonProperty("pickup_at")
+        @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
+        private LocalDateTime pickupAt;
 
         @JsonProperty("pickups")
         private List<Pickup> pickups;

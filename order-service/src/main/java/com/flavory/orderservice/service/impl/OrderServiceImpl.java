@@ -390,14 +390,18 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private OrderReadyEvent.PickupAddress buildPickupAddress(Order order) {
+        DeliveryAddress address = order.getPickupAddress();
+
         return OrderReadyEvent.PickupAddress.builder()
-                .street("ul. Kucharza 1")
-                .city("Warsaw")
-                .postalCode("00-001")
-                .phoneNumber("+48123456789")
-                .contactName("Chef Name")
-                .latitude(52.2297)
-                .longitude(21.0122)
+                .street(address.getStreet())
+                .city(address.getCity())
+                .postalCode(address.getPostalCode())
+                .apartmentNumber(address.getApartmentNumber())
+                .phoneNumber(address.getPhoneNumber())
+                .contactName(order.getCookName())
+                .instructions(address.getDeliveryInstructions())
+                .latitude(address.getLatitude())
+                .longitude(address.getLongitude())
                 .build();
     }
 
@@ -410,7 +414,7 @@ public class OrderServiceImpl implements OrderService {
                 .postalCode(address.getPostalCode())
                 .apartmentNumber(address.getApartmentNumber())
                 .phoneNumber(address.getPhoneNumber())
-                .contactName("Customer") // TODO: pobierz imię z User Service
+                .contactName(order.getCustomerName())
                 .instructions(address.getDeliveryInstructions())
                 .latitude(address.getLatitude())
                 .longitude(address.getLongitude())

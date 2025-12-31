@@ -32,14 +32,18 @@ public class DeliveryEventListener {
         order.updateStatus(Order.OrderStatus.IN_DELIVERY);
 
         if (event.getTrackingUrl() != null) {
-            order.setGlovoTrackingUrl(event.getTrackingUrl());
+            order.setDeliveryTrackingUrl(event.getTrackingUrl());
+        }
+
+        if (event.getDeliveryId() != null) {
+            order.setExternalDeliveryId(String.valueOf(event.getDeliveryId()));
         }
         orderRepository.save(order);
         markEventAsProcessed(event.getEventId());
     }
 
     @Transactional
-    @RabbitListener(queues = "order.delivery.completed.queue")
+    @RabbitListener(queues = RabbitMQConfig.DELIVERY_COMPLETED_QUEUE)
     public void handleDeliveryCompleted(DeliveryCompletedEvent event) {
         if (isEventProcessed(event.getEventId())) {
             return;

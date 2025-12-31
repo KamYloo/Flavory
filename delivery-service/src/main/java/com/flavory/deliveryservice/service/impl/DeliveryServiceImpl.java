@@ -24,6 +24,7 @@ import com.flavory.deliveryservice.service.stuart.StuartRequestBuilder;
 import com.flavory.deliveryservice.validator.DeliveryValidator;
 import com.flavory.deliveryservice.entity.Delivery.DeliveryStatus;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
@@ -35,6 +36,7 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class DeliveryServiceImpl implements DeliveryService {
 
     private final DeliveryRepository deliveryRepository;
@@ -77,8 +79,12 @@ public class DeliveryServiceImpl implements DeliveryService {
 
             StuartJobResponse stuartResponse = stuartApiService.createJob(stuartRequest);
 
-            delivery.setStuartJobId(stuartResponse.getId().toString());
-            delivery.setTrackingUrl(stuartResponse.getTrackingUrl());
+            if (stuartResponse.getDeliveries() != null && !stuartResponse.getDeliveries().isEmpty()) {
+                StuartJobResponse.Delivery stuartDelivery = stuartResponse.getDeliveries().getFirst();
+                Long correctId = stuartDelivery.getId();
+                delivery.setStuartJobId(correctId.toString());
+            }
+
             delivery.updateStatus(Delivery.DeliveryStatus.SCHEDULED);
             delivery.setEstimatedPickupTime(stuartResponse.getPickupAt());
             delivery.setEstimatedDeliveryTime(stuartResponse.getDropoffAt());
@@ -98,7 +104,7 @@ public class DeliveryServiceImpl implements DeliveryService {
         }
 
         delivery = deliveryRepository.save(delivery);
-        publishDeliveryStartedEvent(delivery);
+//        publishDeliveryStartedEvent(delivery);
     }
 
     @Override
@@ -142,18 +148,13 @@ public class DeliveryServiceImpl implements DeliveryService {
 
     @Override
     @Transactional
-    public void updateDeliveryStatus(String stuartJobId, String newStatus, String courierName, String courierPhone) {
+    public void updateDeliveryStatus(String stuartJobId, String newStatus, String courierName, String courierPhone, String trackingUrl) {
         Delivery delivery = deliveryRepository.findByStuartJobId(stuartJobId)
-                .orElseThrow(() -> new DeliveryNotFoundException("Delivery with Stuart job ID " + stuartJobId + " not found"));
+                .orElseThrow(() -> new DeliveryNotFoundException("Delivery not found: " + stuartJobId));
+
         Delivery.DeliveryStatus mappedStatus = mapStuartStatus(newStatus);
 
         if (mappedStatus == null) {
-            return;
-        }
-
-        try {
-            delivery.updateStatus(mappedStatus);
-        } catch (InvalidDeliveryStatusException e) {
             return;
         }
 
@@ -164,10 +165,24 @@ public class DeliveryServiceImpl implements DeliveryService {
             delivery.setCourierPhone(courierPhone);
         }
 
+        delivery.setTrackingUrl(trackingUrl);
+
+        try {
+            delivery.updateStatus(mappedStatus);
+        } catch (InvalidDeliveryStatusException e) {
+            return;
+        }
+
         switch (mappedStatus) {
-            case PICKED_UP -> {
-                delivery.setActualPickupTime(LocalDateTime.now());
-                publishDeliveryPickedUpEvent(delivery);
+//            case PICKED_UP -> {
+//                delivery.setActualPickupTime(LocalDateTime.now());
+//                publishDeliveryStartedEvent(delivery);
+//            }
+            case IN_TRANSIT -> {
+                if (delivery.getActualPickupTime() == null) {
+                    delivery.setActualPickupTime(LocalDateTime.now());
+                    publishDeliveryStartedEvent(delivery);
+                }
             }
             case DELIVERED -> {
                 delivery.setActualDeliveryTime(LocalDateTime.now());
@@ -245,14 +260,22 @@ public class DeliveryServiceImpl implements DeliveryService {
     }
 
     private DeliveryStatus mapStuartStatus(String stuartStatus) {
-        return switch (stuartStatus.toUpperCase()) {
-            case "SCHEDULED" -> DeliveryStatus.SCHEDULED;
-            case "DISPATCHED", "PICKING" -> DeliveryStatus.COURIER_ASSIGNED;
-            case "PICKED_UP", "PICKED" -> DeliveryStatus.PICKED_UP;
-            case "DROPPING" -> DeliveryStatus.IN_TRANSIT;
-            case "DELIVERED" -> DeliveryStatus.DELIVERED;
-            case "CANCELLED" -> DeliveryStatus.CANCELLED;
-            default -> null;
+        if (stuartStatus == null) return null;
+
+        return switch (stuartStatus.toLowerCase()) {
+            case "courier_assigned" -> Delivery.DeliveryStatus.COURIER_ASSIGNED;
+            case "package_picking_up", "package_delivering" -> Delivery.DeliveryStatus.IN_TRANSIT;
+            case "package_picked_up" -> Delivery.DeliveryStatus.PICKED_UP;
+            case "package_delivered", "delivered" -> Delivery.DeliveryStatus.DELIVERED;
+            case "package_canceled", "canceled", "cancelled" -> Delivery.DeliveryStatus.CANCELLED;
+
+            case "scheduled" -> Delivery.DeliveryStatus.SCHEDULED;
+            case "delivering" -> Delivery.DeliveryStatus.IN_TRANSIT;
+
+            default -> {
+                System.out.println(">>> [UWAGA] Nieznany status Stuart: " + stuartStatus);
+                yield null;
+            }
         };
     }
 

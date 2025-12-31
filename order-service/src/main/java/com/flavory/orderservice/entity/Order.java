@@ -103,11 +103,11 @@ public class Order {
     @Column(name = "actual_delivery_time")
     private LocalDateTime actualDeliveryTime;
 
-    @Column(name = "glovo_order_id", length = 100)
-    private String glovoOrderId;
+    @Column(name = "external_delivery_id", length = 100)
+    private String externalDeliveryId;
 
-    @Column(name = "glovo_tracking_url", length = 500)
-    private String glovoTrackingUrl;
+    @Column(name = "delivery_tracking_url", length = 500)
+    private String deliveryTrackingUrl;
 
     @Column(name = "dish_rating", precision = 3, scale = 2)
     private BigDecimal dishRating;

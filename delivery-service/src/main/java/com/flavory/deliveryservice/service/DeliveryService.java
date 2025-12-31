@@ -15,7 +15,7 @@ public interface  DeliveryService {
     DeliveryResponse getDeliveryById(Long deliveryId, Authentication authentication);
     Page<DeliverySummaryResponse> getCustomerDeliveries(Pageable pageable, Authentication authentication);
     Page<DeliverySummaryResponse> getCookDeliveries(Pageable pageable, Authentication authentication);
-    void updateDeliveryStatus(String stuartJobId, String newStatus, String courierName, String courierPhone);
+    void updateDeliveryStatus(String stuartJobId, String newStatus, String courierName, String courierPhone, String trackingUrl);
     DeliveryResponse cancelDelivery(Long deliveryId, String reason, Authentication authentication);
     Delivery getDeliveryOrThrow(Long deliveryId);
 }

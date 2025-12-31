@@ -49,9 +49,6 @@ public class StuartJobResponse {
     @JsonProperty("deliveries")
     private List<Delivery> deliveries;
 
-    @JsonProperty("tracking_url")
-    private String trackingUrl;
-
     @Data
     @Builder
     @NoArgsConstructor
@@ -76,6 +73,15 @@ public class StuartJobResponse {
 
         @JsonProperty("status")
         private String status;
+
+        @JsonProperty("end_customer_tracking_url")
+        private String endCustomerTrackingUrl;
+
+        @JsonProperty("tracking_url")
+        private String trackingUrl;
+
+        @JsonProperty("client_tracking_url")
+        private String clientTrackingUrl;
 
         @JsonProperty("driver")
         private Driver driver;

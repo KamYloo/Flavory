@@ -40,8 +40,8 @@ public class OrderResponse {
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime actualDeliveryTime;
 
-    private String glovoOrderId;
-    private String glovoTrackingUrl;
+    private String externalDeliveryId;
+    private String deliveryTrackingUrl;
 
     private BigDecimal dishRating;
     private Long ratedDishId;

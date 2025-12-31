@@ -166,6 +166,7 @@ public class Delivery {
                     to == DeliveryStatus.FAILED;
 
             case COURIER_ASSIGNED -> to == DeliveryStatus.PICKED_UP ||
+                    to == DeliveryStatus.IN_TRANSIT ||
                     to == DeliveryStatus.CANCELLED ||
                     to == DeliveryStatus.FAILED;
 

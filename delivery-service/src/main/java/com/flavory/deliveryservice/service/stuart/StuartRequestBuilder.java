@@ -40,7 +40,6 @@ public class StuartRequestBuilder {
                 .longitude(dropoffAddress.getLongitude())
                 .build();
 
-        // Job
         StuartJobRequest.Job job = StuartJobRequest.Job.builder()
                 .assignmentCode("FLAVORY_ORDER_" + orderId)
                 .pickups(List.of(pickup))
