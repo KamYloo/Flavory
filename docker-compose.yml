@@ -142,6 +142,26 @@ services:
       timeout: 5s
       retries: 5
 
+  payment-db:
+    image: postgres:15
+    container_name: payment-db
+    environment:
+      POSTGRES_DB: "${PAYMENT_POSTGRES_DB}"
+      POSTGRES_USER: "${PAYMENT_POSTGRES_USER}"
+      POSTGRES_PASSWORD: "${PAYMENT_POSTGRES_PASSWORD}"
+    ports:
+      - "${PAYMENT_POSTGRES_HOST_PORT:-5436}:5432"
+    volumes:
+      - payment_db_data:/var/lib/postgresql/data
+    networks:
+      - flavory-net
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${PAYMENT_POSTGRES_USER} -d ${PAYMENT_POSTGRES_DB}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   user-service:
     container_name: user-service
     build:
@@ -251,6 +271,46 @@ services:
       - flavory-net
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8080/actuator/health" ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 90s
+    restart: unless-stopped
+
+  payment-service:
+    container_name: payment-service
+    build:
+      context: ./payment-service
+    env_file:
+      - .env
+    ports:
+      - "${PAYMENT_SERVICE_HOST_PORT:-8085}:8085"
+    environment:
+      SPRING_DATASOURCE_URL: "jdbc:postgresql://payment-db:5432/${PAYMENT_POSTGRES_DB}"
+      SPRING_DATASOURCE_USERNAME: "${PAYMENT_POSTGRES_USER}"
+      SPRING_DATASOURCE_PASSWORD: "${PAYMENT_POSTGRES_PASSWORD}"
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: ${AUTH0_ISSUER_URI}
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_AUDIENCE: ${AUTH0_AUDIENCE}
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: "http://eureka-server:8761/eureka/"
+      EUREKA_INSTANCE_PREFER_IP_ADDRESS: "true"
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: "${RABBITMQ_USER:-guest}"
+      SPRING_RABBITMQ_PASSWORD: "${RABBITMQ_PASSWORD:-guest}"
+      STRIPE_API_KEY: "${STRIPE_API_KEY}"
+      STRIPE_WEBHOOK_SECRET: "${STRIPE_WEBHOOK_SECRET}"
+      SPRING_PROFILES_ACTIVE: "${SPRING_PROFILES_ACTIVE:-prod}"
+    depends_on:
+      payment-db:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - flavory-net
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8085/actuator/health" ]
       interval: 15s
       timeout: 5s
       retries: 5

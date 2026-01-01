@@ -26,6 +26,11 @@ spring:
               uri: lb://delivery-service
               predicates:
                 - Path=/api/deliveries/**, /api/webhooks/stuart/**
+
+            - id: payment-service-route
+              uri: lb://payment-service
+              predicates:
+                - Path=/api/payments/**, /api/webhooks/stripe/**
           discovery:
             locator:
               enabled: false
