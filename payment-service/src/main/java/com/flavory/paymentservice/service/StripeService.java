@@ -12,4 +12,6 @@ public interface StripeService {
     PaymentIntent cancelPaymentIntent(String paymentIntentId);
     PaymentIntent retrievePaymentIntent(String paymentIntentId);
     Refund createRefund(String paymentIntentId, RefundRequest refundRequest);
+    BigDecimal calculatePlatformFee(BigDecimal amount);
+    BigDecimal calculateCookPayout(BigDecimal amount, BigDecimal platformFee);
 }

@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -107,4 +108,25 @@ public class StripeServiceImpl implements StripeService {
         }
     }
 
+    @Override
+    public BigDecimal calculatePlatformFee(BigDecimal amount) {
+        BigDecimal fee = amount
+                .multiply(paymentProperties.getFees().getPlatformPercentage())
+                .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+
+        if (fee.compareTo(paymentProperties.getFees().getMinPlatformFee()) < 0) {
+            fee = paymentProperties.getFees().getMinPlatformFee();
+        }
+
+        if (fee.compareTo(paymentProperties.getFees().getMaxPlatformFee()) > 0) {
+            fee = paymentProperties.getFees().getMaxPlatformFee();
+        }
+
+        return fee;
+    }
+
+    @Override
+    public BigDecimal calculateCookPayout(BigDecimal amount, BigDecimal platformFee) {
+        return amount.subtract(platformFee).setScale(2, RoundingMode.HALF_UP);
+    }
 }
