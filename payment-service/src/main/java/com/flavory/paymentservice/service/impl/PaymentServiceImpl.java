@@ -14,6 +14,8 @@ import com.stripe.exception.StripeException;
 import com.stripe.model.Charge;
 import com.stripe.model.PaymentIntent;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -135,6 +137,13 @@ public class PaymentServiceImpl implements PaymentService {
         Payment payment = paymentRepository.findByOrderId(orderId)
                 .orElseThrow(() -> new PaymentNotFoundException(orderId));
         return paymentMapper.toPaymentResponse(payment);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<PaymentResponse> getCustomerPayments(String customerId, Pageable pageable) {
+        return paymentRepository.findByCustomerId(customerId, pageable)
+                .map(paymentMapper::toPaymentResponse);
     }
 
     private void validatePaymentAmount(BigDecimal amount) {

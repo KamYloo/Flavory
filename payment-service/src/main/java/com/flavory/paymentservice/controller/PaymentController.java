@@ -9,6 +9,10 @@ import com.flavory.paymentservice.service.PaymentService;
 import com.flavory.paymentservice.util.SecurityUtils;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -90,5 +94,21 @@ public class PaymentController {
         }
 
         return ResponseEntity.ok(payment);
+    }
+
+    @GetMapping("/customer/{customerId}")
+    public ResponseEntity<Page<PaymentResponse>> getCustomerPayments(
+            @PathVariable String customerId,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
+            Authentication authentication) {
+
+        String userId = jwtService.extractAuth0Id(authentication);
+
+        if (!customerId.equals(userId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        Page<PaymentResponse> payments = paymentService.getCustomerPayments(customerId, pageable);
+        return ResponseEntity.ok(payments);
     }
 }
