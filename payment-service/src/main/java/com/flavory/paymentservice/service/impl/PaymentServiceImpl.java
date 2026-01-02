@@ -127,6 +127,8 @@ public class PaymentServiceImpl implements PaymentService {
         payment.markAsCancelled();
         payment = paymentRepository.save(payment);
 
+        eventPublisher.publishPaymentCancelled(payment);
+
         return paymentMapper.toPaymentResponse(payment);
     }
 

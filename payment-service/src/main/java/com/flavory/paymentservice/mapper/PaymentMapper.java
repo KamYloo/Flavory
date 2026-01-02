@@ -35,4 +35,9 @@ public interface PaymentMapper {
     default PaymentEvent toPaymentFailedEvent(Payment payment) {
         return toPaymentEvent(payment, PaymentEventType.PAYMENT_FAILED);
     }
+
+    default PaymentEvent toPaymentCancelledEvent(Payment payment) {
+        return toPaymentEvent(payment, PaymentEventType.PAYMENT_CANCELLED);
+    }
+
 }

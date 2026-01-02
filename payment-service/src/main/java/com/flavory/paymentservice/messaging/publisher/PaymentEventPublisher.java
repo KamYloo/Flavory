@@ -20,7 +20,7 @@ public class PaymentEventPublisher {
         try {
             rabbitTemplate.convertAndSend(
                     RabbitMQConfig.PAYMENT_EXCHANGE,
-                    "payment.created",
+                    RabbitMQConfig.PAYMENT_CREATED_ROUTING_KEY,
                     event
             );
         } catch (Exception e) {
@@ -53,6 +53,20 @@ public class PaymentEventPublisher {
             );
         } catch (Exception e) {
             throw new RuntimeException("Failed to publish PaymentFailedEvent", e);
+        }
+    }
+
+    public void publishPaymentCancelled(Payment payment) {
+        PaymentEvent event = paymentMapper.toPaymentCancelledEvent(payment);
+
+        try {
+            rabbitTemplate.convertAndSend(
+                    RabbitMQConfig.PAYMENT_EXCHANGE,
+                    RabbitMQConfig.PAYMENT_CANCELLED_ROUTING_KEY,
+                    event
+            );
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to publish PaymentCancelledEvent", e);
         }
     }
 }

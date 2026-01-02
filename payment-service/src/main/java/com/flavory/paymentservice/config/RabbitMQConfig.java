@@ -16,12 +16,16 @@ public class RabbitMQConfig {
     public static final String ORDER_EXCHANGE = "order.events";
     public static final String DLX_EXCHANGE = "dlx.exchange";
 
+    public static final String PAYMENT_CREATED_QUEUE = "payment.created.queue";
     public static final String PAYMENT_SUCCEEDED_QUEUE = "order.payment.succeeded.queue";
     public static final String PAYMENT_FAILED_QUEUE = "order.payment.failed.queue";
+    public static final String PAYMENT_CANCELLED_QUEUE = "payment.cancelled.queue";
     public static final String PAYMENT_REFUNDED_QUEUE = "order.payment.refunded.queue";
 
+    public static final String PAYMENT_CREATED_ROUTING_KEY = "payment.created";
     public static final String PAYMENT_SUCCEEDED_ROUTING_KEY = "payment.succeeded";
     public static final String PAYMENT_FAILED_ROUTING_KEY = "payment.failed";
+    public static final String PAYMENT_CANCELLED_ROUTING_KEY = "payment.cancelled";
     public static final String PAYMENT_REFUNDED_ROUTING_KEY = "payment.refunded";
 
     @Bean
@@ -49,6 +53,15 @@ public class RabbitMQConfig {
     }
 
     @Bean
+    public Queue paymentCreatedQueue() {
+        return QueueBuilder
+                .durable(PAYMENT_CREATED_QUEUE)
+                .withArgument("x-dead-letter-exchange", DLX_EXCHANGE)
+                .withArgument("x-dead-letter-routing-key", "dlq.payment.created")
+                .build();
+    }
+
+    @Bean
     public Queue paymentSucceededQueue() {
         return QueueBuilder
                 .durable(PAYMENT_SUCCEEDED_QUEUE)
@@ -67,12 +80,29 @@ public class RabbitMQConfig {
     }
 
     @Bean
+    public Queue paymentCancelledQueue() {
+        return QueueBuilder
+                .durable(PAYMENT_CANCELLED_QUEUE)
+                .withArgument("x-dead-letter-exchange", DLX_EXCHANGE)
+                .withArgument("x-dead-letter-routing-key", "dlq.payment.cancelled")
+                .build();
+    }
+
+    @Bean
     public Queue paymentRefundedQueue() {
         return QueueBuilder
                 .durable(PAYMENT_REFUNDED_QUEUE)
                 .withArgument("x-dead-letter-exchange", DLX_EXCHANGE)
                 .withArgument("x-dead-letter-routing-key", "dlq.payment.refunded")
                 .build();
+    }
+
+    @Bean
+    public Binding paymentCreatedBinding() {
+        return BindingBuilder
+                .bind(paymentCreatedQueue())
+                .to(paymentExchange())
+                .with(PAYMENT_CREATED_ROUTING_KEY);
     }
 
     @Bean
@@ -89,6 +119,14 @@ public class RabbitMQConfig {
                 .bind(paymentFailedQueue())
                 .to(paymentExchange())
                 .with(PAYMENT_FAILED_ROUTING_KEY);
+    }
+
+    @Bean
+    public Binding paymentCancelledBinding() {
+        return BindingBuilder
+                .bind(paymentCancelledQueue())
+                .to(paymentExchange())
+                .with(PAYMENT_CANCELLED_ROUTING_KEY);
     }
 
     @Bean
