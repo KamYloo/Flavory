@@ -9,4 +9,5 @@ public interface PaymentService {
     PaymentResponse confirmPayment(String paymentIntentId);
     PaymentResponse cancelPayment(Long paymentId);
     PaymentResponse getPaymentById(Long paymentId);
+    PaymentResponse getPaymentByOrderId(Long orderId);
 }

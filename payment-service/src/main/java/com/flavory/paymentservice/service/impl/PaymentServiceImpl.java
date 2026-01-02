@@ -129,6 +129,14 @@ public class PaymentServiceImpl implements PaymentService {
         return paymentMapper.toPaymentResponse(payment);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public PaymentResponse getPaymentByOrderId(Long orderId) {
+        Payment payment = paymentRepository.findByOrderId(orderId)
+                .orElseThrow(() -> new PaymentNotFoundException(orderId));
+        return paymentMapper.toPaymentResponse(payment);
+    }
+
     private void validatePaymentAmount(BigDecimal amount) {
         if (amount == null || amount.compareTo(MIN_PAYMENT_AMOUNT) < 0) {
             throw new InvalidPaymentAmountException(amount);

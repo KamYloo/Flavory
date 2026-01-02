@@ -9,7 +9,6 @@ import com.flavory.paymentservice.service.PaymentService;
 import com.flavory.paymentservice.util.SecurityUtils;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -18,7 +17,6 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/payments")
 @RequiredArgsConstructor
-@Slf4j
 public class PaymentController {
 
     private final JwtService jwtService;
@@ -71,6 +69,21 @@ public class PaymentController {
 
         String userId = jwtService.extractAuth0Id(authentication);
         PaymentResponse payment = paymentService.getPaymentById(id);
+
+        if (!SecurityUtils.hasAccessToPayment(payment, userId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        return ResponseEntity.ok(payment);
+    }
+
+    @GetMapping("/order/{orderId}")
+    public ResponseEntity<PaymentResponse> getPaymentByOrderId(
+            @PathVariable Long orderId,
+            Authentication authentication) {
+
+        String userId = jwtService.extractAuth0Id(authentication);
+        PaymentResponse payment = paymentService.getPaymentByOrderId(orderId);
 
         if (!SecurityUtils.hasAccessToPayment(payment, userId)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
