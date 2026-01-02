@@ -42,4 +42,17 @@ public class PaymentEventPublisher {
         }
     }
 
+    public void publishPaymentFailed(Payment payment) {
+        PaymentEvent event = paymentMapper.toPaymentFailedEvent(payment);
+
+        try {
+            rabbitTemplate.convertAndSend(
+                    RabbitMQConfig.PAYMENT_EXCHANGE,
+                    RabbitMQConfig.PAYMENT_FAILED_ROUTING_KEY,
+                    event
+            );
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to publish PaymentFailedEvent", e);
+        }
+    }
 }

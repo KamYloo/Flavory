@@ -198,6 +198,20 @@ public class PaymentServiceImpl implements PaymentService {
                 .build();
     }
 
+    @Override
+    @Transactional
+    public PaymentResponse markPaymentAsFailed(String paymentIntentId, String failureCode, String failureMessage) {
+        Payment payment = paymentRepository.findByStripePaymentIntentId(paymentIntentId)
+                .orElseThrow(() -> new PaymentNotFoundException(paymentIntentId));
+
+        payment.markAsFailed(failureCode, failureMessage);
+        payment = paymentRepository.save(payment);
+
+        eventPublisher.publishPaymentFailed(payment);
+
+        return paymentMapper.toPaymentResponse(payment);
+    }
+
     private void validatePaymentAmount(BigDecimal amount) {
         if (amount == null || amount.compareTo(MIN_PAYMENT_AMOUNT) < 0) {
             throw new InvalidPaymentAmountException(amount);

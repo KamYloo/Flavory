@@ -17,4 +17,5 @@ public interface PaymentService {
     Page<PaymentResponse> getCustomerPayments(String customerId, Pageable pageable);
     Page<PaymentResponse> getCookPayments(String cookId, Pageable pageable);
     RefundResponse refundPayment(Long paymentId, RefundRequest refundRequest);
+    PaymentResponse markPaymentAsFailed(String paymentIntentId, String failureCode, String failureMessage);
 }
