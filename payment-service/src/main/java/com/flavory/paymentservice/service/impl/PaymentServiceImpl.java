@@ -9,6 +9,7 @@ import com.flavory.paymentservice.entity.Payment;
 import com.flavory.paymentservice.entity.PaymentStatus;
 import com.flavory.paymentservice.exception.*;
 import com.flavory.paymentservice.mapper.PaymentMapper;
+import com.flavory.paymentservice.messaging.publisher.PaymentEventPublisher;
 import com.flavory.paymentservice.repository.PaymentRepository;
 import com.flavory.paymentservice.service.PaymentService;
 import com.flavory.paymentservice.service.StripeService;
@@ -32,6 +33,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final PaymentRepository paymentRepository;
     private final StripeService stripeService;
     private final PaymentMapper paymentMapper;
+    private final PaymentEventPublisher eventPublisher;
 
     private static final BigDecimal MIN_PAYMENT_AMOUNT = new BigDecimal("1.00");
     private static final BigDecimal MAX_PAYMENT_AMOUNT = new BigDecimal("10000.00");
@@ -70,6 +72,8 @@ public class PaymentServiceImpl implements PaymentService {
                     .build();
 
             payment = paymentRepository.save(payment);
+
+            eventPublisher.publishPaymentCreated(payment);
 
             return paymentMapper.toPaymentIntentResponse(payment);
 

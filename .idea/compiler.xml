@@ -34,6 +34,7 @@
           <entry name="$MAVEN_REPOSITORY$/org/mapstruct/mapstruct/1.6.3/mapstruct-1.6.3.jar" />
         </processorPath>
         <module name="delivery-service" />
+        <module name="payment-service" />
         <module name="order-service" />
         <module name="dish-service" />
       </profile>
