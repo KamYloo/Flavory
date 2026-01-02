@@ -6,6 +6,7 @@ import com.flavory.paymentservice.exception.StripeIntegrationException;
 import com.flavory.paymentservice.service.StripeService;
 import com.stripe.exception.StripeException;
 import com.stripe.model.PaymentIntent;
+import com.stripe.param.PaymentIntentCancelParams;
 import com.stripe.param.PaymentIntentCreateParams;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -48,4 +49,22 @@ public class StripeServiceImpl implements StripeService {
             );
         }
     }
+
+    @Override
+    public PaymentIntent cancelPaymentIntent(String paymentIntentId) {
+        try {
+            PaymentIntent paymentIntent = PaymentIntent.retrieve(paymentIntentId);
+
+            PaymentIntentCancelParams params = PaymentIntentCancelParams.builder()
+                    .build();
+
+            return paymentIntent.cancel(params);
+
+        } catch (StripeException e) {
+            throw new StripeIntegrationException(
+                    "Nie udało się anulować Payment Intent: " + e.getUserMessage(), e
+            );
+        }
+    }
+
 }
