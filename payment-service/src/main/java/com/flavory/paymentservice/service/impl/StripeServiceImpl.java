@@ -67,4 +67,16 @@ public class StripeServiceImpl implements StripeService {
         }
     }
 
+    @Override
+    public PaymentIntent retrievePaymentIntent(String paymentIntentId) {
+        try {
+            return PaymentIntent.retrieve(paymentIntentId);
+
+        } catch (StripeException e) {
+            throw new StripeIntegrationException(
+                    "Nie udało się pobrać Payment Intent: " + e.getUserMessage(), e
+            );
+        }
+    }
+
 }
