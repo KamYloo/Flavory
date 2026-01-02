@@ -1,13 +1,16 @@
 package com.flavory.paymentservice.service.impl;
 
 import com.flavory.paymentservice.config.PaymentProperties;
+import com.flavory.paymentservice.dto.request.RefundRequest;
 import com.flavory.paymentservice.entity.PaymentMethod;
 import com.flavory.paymentservice.exception.StripeIntegrationException;
 import com.flavory.paymentservice.service.StripeService;
 import com.stripe.exception.StripeException;
 import com.stripe.model.PaymentIntent;
+import com.stripe.model.Refund;
 import com.stripe.param.PaymentIntentCancelParams;
 import com.stripe.param.PaymentIntentCreateParams;
+import com.stripe.param.RefundCreateParams;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -75,6 +78,31 @@ public class StripeServiceImpl implements StripeService {
         } catch (StripeException e) {
             throw new StripeIntegrationException(
                     "Nie udało się pobrać Payment Intent: " + e.getUserMessage(), e
+            );
+        }
+    }
+
+    @Override
+    public Refund createRefund(String paymentIntentId, RefundRequest refundRequest) {
+        try {
+            Long amountInCents = refundRequest.getAmount()
+                    .multiply(BigDecimal.valueOf(100))
+                    .longValue();
+
+            Map<String, String> metadata = new HashMap<>();
+            metadata.put("reason", refundRequest.getReason());
+
+            RefundCreateParams params = RefundCreateParams.builder()
+                    .setPaymentIntent(paymentIntentId)
+                    .setAmount(amountInCents)
+                    .putAllMetadata(metadata)
+                    .build();
+
+            return Refund.create(params);
+
+        } catch (StripeException e) {
+            throw new StripeIntegrationException(
+                    "Nie udało się utworzyć zwrotu: " + e.getUserMessage(), e
             );
         }
     }
