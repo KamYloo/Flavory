@@ -99,6 +99,36 @@ public class PaymentServiceImpl implements PaymentService {
         return paymentMapper.toPaymentResponse(payment);
     }
 
+    @Override
+    @Transactional
+    public PaymentResponse cancelPayment(Long paymentId) {
+        Payment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new PaymentNotFoundException(paymentId));
+
+        if (!payment.canBeCancelled()) {
+            throw new InvalidPaymentStateException(
+                    paymentId,
+                    payment.getStatus(),
+                    "anulowanie"
+            );
+        }
+
+        stripeService.cancelPaymentIntent(payment.getStripePaymentIntentId());
+
+        payment.markAsCancelled();
+        payment = paymentRepository.save(payment);
+
+        return paymentMapper.toPaymentResponse(payment);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PaymentResponse getPaymentById(Long paymentId) {
+        Payment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new PaymentNotFoundException(paymentId));
+        return paymentMapper.toPaymentResponse(payment);
+    }
+
     private void validatePaymentAmount(BigDecimal amount) {
         if (amount == null || amount.compareTo(MIN_PAYMENT_AMOUNT) < 0) {
             throw new InvalidPaymentAmountException(amount);

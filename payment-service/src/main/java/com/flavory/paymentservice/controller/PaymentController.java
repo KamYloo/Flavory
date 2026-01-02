@@ -6,6 +6,7 @@ import com.flavory.paymentservice.dto.response.PaymentIntentResponse;
 import com.flavory.paymentservice.dto.response.PaymentResponse;
 import com.flavory.paymentservice.security.JwtService;
 import com.flavory.paymentservice.service.PaymentService;
+import com.flavory.paymentservice.util.SecurityUtils;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -45,5 +46,36 @@ public class PaymentController {
 
         PaymentResponse response = paymentService.confirmPayment(request.getPaymentIntentId());
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{id}/cancel")
+    public ResponseEntity<PaymentResponse> cancelPayment(
+            @PathVariable Long id,
+            Authentication authentication) {
+        String userId = jwtService.extractAuth0Id(authentication);
+
+        PaymentResponse payment = paymentService.getPaymentById(id);
+
+        if (!payment.getCustomerId().equals(userId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        PaymentResponse cancelledPayment = paymentService.cancelPayment(id);
+        return ResponseEntity.ok(cancelledPayment);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<PaymentResponse> getPaymentById(
+            @PathVariable Long id,
+            Authentication authentication) {
+
+        String userId = jwtService.extractAuth0Id(authentication);
+        PaymentResponse payment = paymentService.getPaymentById(id);
+
+        if (!SecurityUtils.hasAccessToPayment(payment, userId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        return ResponseEntity.ok(payment);
     }
 }

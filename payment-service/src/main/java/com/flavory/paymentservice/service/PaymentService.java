@@ -7,4 +7,6 @@ import com.flavory.paymentservice.dto.response.PaymentResponse;
 public interface PaymentService {
     PaymentIntentResponse createPaymentIntent(CreatePaymentIntentRequest request);
     PaymentResponse confirmPayment(String paymentIntentId);
+    PaymentResponse cancelPayment(Long paymentId);
+    PaymentResponse getPaymentById(Long paymentId);
 }
