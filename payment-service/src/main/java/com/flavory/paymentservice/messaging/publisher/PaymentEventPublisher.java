@@ -69,4 +69,18 @@ public class PaymentEventPublisher {
             throw new RuntimeException("Failed to publish PaymentCancelledEvent", e);
         }
     }
+
+    public void publishPaymentRefunded(Payment payment) {
+        PaymentEvent event = paymentMapper.toPaymentRefundedEvent(payment);
+
+        try {
+            rabbitTemplate.convertAndSend(
+                    RabbitMQConfig.PAYMENT_EXCHANGE,
+                    RabbitMQConfig.PAYMENT_REFUNDED_ROUTING_KEY,
+                    event
+            );
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to publish PaymentRefundedEvent", e);
+        }
+    }
 }

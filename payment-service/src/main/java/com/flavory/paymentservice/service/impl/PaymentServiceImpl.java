@@ -189,6 +189,7 @@ public class PaymentServiceImpl implements PaymentService {
                 refundRequest.getReason()
         );
         payment = paymentRepository.save(payment);
+        eventPublisher.publishPaymentRefunded(payment);
 
         return RefundResponse.builder()
                 .paymentId(payment.getId())

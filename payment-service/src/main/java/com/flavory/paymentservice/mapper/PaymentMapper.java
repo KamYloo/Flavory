@@ -40,4 +40,7 @@ public interface PaymentMapper {
         return toPaymentEvent(payment, PaymentEventType.PAYMENT_CANCELLED);
     }
 
+    default PaymentEvent toPaymentRefundedEvent(Payment payment) {
+        return toPaymentEvent(payment, PaymentEventType.PAYMENT_REFUNDED);
+    }
 }

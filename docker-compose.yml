@@ -363,6 +363,7 @@ volumes:
   dish_db_data:
   order_db_data:
   delivery_db_data:
+  payment_db_data:
   uploads:
   rabbitmq_data:
 
