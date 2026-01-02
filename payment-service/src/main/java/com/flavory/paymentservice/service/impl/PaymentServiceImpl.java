@@ -238,5 +238,7 @@ public class PaymentServiceImpl implements PaymentService {
         }
 
         payment = paymentRepository.save(payment);
+
+        eventPublisher.publishPaymentSucceeded(payment);
     }
 }

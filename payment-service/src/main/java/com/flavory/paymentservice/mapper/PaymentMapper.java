@@ -27,4 +27,8 @@ public interface PaymentMapper {
     default PaymentEvent toPaymentCreatedEvent(Payment payment) {
         return toPaymentEvent(payment, PaymentEventType.PAYMENT_CREATED);
     }
+
+    default PaymentEvent toPaymentSucceededEvent(Payment payment) {
+        return toPaymentEvent(payment, PaymentEventType.PAYMENT_SUCCEEDED);
+    }
 }
