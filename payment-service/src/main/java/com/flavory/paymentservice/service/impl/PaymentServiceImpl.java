@@ -2,22 +2,23 @@ package com.flavory.paymentservice.service.impl;
 
 import com.flavory.paymentservice.dto.request.CreatePaymentIntentRequest;
 import com.flavory.paymentservice.dto.response.PaymentIntentResponse;
+import com.flavory.paymentservice.dto.response.PaymentResponse;
 import com.flavory.paymentservice.entity.Payment;
 import com.flavory.paymentservice.entity.PaymentStatus;
-import com.flavory.paymentservice.exception.DuplicatePaymentException;
-import com.flavory.paymentservice.exception.InvalidPaymentAmountException;
-import com.flavory.paymentservice.exception.PaymentProcessingException;
-import com.flavory.paymentservice.exception.StripeIntegrationException;
+import com.flavory.paymentservice.exception.*;
 import com.flavory.paymentservice.mapper.PaymentMapper;
 import com.flavory.paymentservice.repository.PaymentRepository;
 import com.flavory.paymentservice.service.PaymentService;
 import com.flavory.paymentservice.service.StripeService;
+import com.stripe.exception.StripeException;
+import com.stripe.model.Charge;
 import com.stripe.model.PaymentIntent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -72,6 +73,32 @@ public class PaymentServiceImpl implements PaymentService {
         }
     }
 
+    @Override
+    @Transactional
+    public PaymentResponse confirmPayment(String paymentIntentId) {
+        Payment payment = paymentRepository.findByStripePaymentIntentId(paymentIntentId)
+                .orElseThrow(() -> new PaymentNotFoundException(paymentIntentId));
+
+        PaymentIntent paymentIntent = stripeService.retrievePaymentIntent(paymentIntentId);
+
+        switch (paymentIntent.getStatus()) {
+            case "succeeded":
+                handlePaymentSuccess(payment, paymentIntent);
+                break;
+            case "requires_action":
+                payment.updateStatus(PaymentStatus.REQUIRES_ACTION);
+                payment = paymentRepository.save(payment);
+                break;
+            case "processing":
+                payment.updateStatus(PaymentStatus.PROCESSING);
+                payment = paymentRepository.save(payment);
+                break;
+            default:
+        }
+
+        return paymentMapper.toPaymentResponse(payment);
+    }
+
     private void validatePaymentAmount(BigDecimal amount) {
         if (amount == null || amount.compareTo(MIN_PAYMENT_AMOUNT) < 0) {
             throw new InvalidPaymentAmountException(amount);
@@ -87,5 +114,30 @@ public class PaymentServiceImpl implements PaymentService {
         if (paymentRepository.existsByOrderId(orderId)) {
             throw new DuplicatePaymentException(orderId);
         }
+    }
+
+    private void handlePaymentSuccess(Payment payment, PaymentIntent paymentIntent) {
+        payment.markAsPaid(
+                paymentIntent.getLatestCharge(),
+                LocalDateTime.now()
+        );
+
+        String chargeId = paymentIntent.getLatestCharge();
+
+        if (chargeId != null) {
+            try {
+                Charge charge = Charge.retrieve(chargeId);
+
+                if (charge.getPaymentMethodDetails() != null &&
+                        charge.getPaymentMethodDetails().getCard() != null) {
+
+                    payment.setCardLast4(charge.getPaymentMethodDetails().getCard().getLast4());
+                    payment.setCardBrand(charge.getPaymentMethodDetails().getCard().getBrand());
+                }
+            } catch (StripeException ignored) {
+            }
+        }
+
+        payment = paymentRepository.save(payment);
     }
 }
