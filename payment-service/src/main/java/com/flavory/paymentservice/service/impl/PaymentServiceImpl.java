@@ -1,8 +1,10 @@
 package com.flavory.paymentservice.service.impl;
 
 import com.flavory.paymentservice.dto.request.CreatePaymentIntentRequest;
+import com.flavory.paymentservice.dto.request.RefundRequest;
 import com.flavory.paymentservice.dto.response.PaymentIntentResponse;
 import com.flavory.paymentservice.dto.response.PaymentResponse;
+import com.flavory.paymentservice.dto.response.RefundResponse;
 import com.flavory.paymentservice.entity.Payment;
 import com.flavory.paymentservice.entity.PaymentStatus;
 import com.flavory.paymentservice.exception.*;
@@ -13,6 +15,7 @@ import com.flavory.paymentservice.service.StripeService;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Charge;
 import com.stripe.model.PaymentIntent;
+import com.stripe.model.Refund;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -146,10 +149,49 @@ public class PaymentServiceImpl implements PaymentService {
                 .map(paymentMapper::toPaymentResponse);
     }
 
+    @Override
     @Transactional(readOnly = true)
     public Page<PaymentResponse> getCookPayments(String cookId, Pageable pageable) {
         return paymentRepository.findByCookId(cookId, pageable)
                 .map(paymentMapper::toPaymentResponse);
+    }
+
+    @Override
+    @Transactional
+    public RefundResponse refundPayment(Long paymentId, RefundRequest refundRequest) {
+        Payment payment = paymentRepository.findById(paymentId)
+                .orElseThrow(() -> new PaymentNotFoundException(paymentId));
+
+        if (!payment.canBeRefunded()) {
+            throw new RefundNotAllowedException(paymentId, payment.getStatus());
+        }
+
+        if (refundRequest.getAmount().compareTo(payment.getAmount()) > 0) {
+            throw new RefundNotAllowedException(
+                    "Kwota zwrotu nie może przekraczać kwoty płatności"
+            );
+        }
+
+        Refund refund = stripeService.createRefund(
+                payment.getStripePaymentIntentId(),
+                refundRequest
+        );
+
+        payment.markAsRefunded(
+                refund.getId(),
+                refundRequest.getAmount(),
+                refundRequest.getReason()
+        );
+        payment = paymentRepository.save(payment);
+
+        return RefundResponse.builder()
+                .paymentId(payment.getId())
+                .refundId(refund.getId())
+                .refundAmount(refundRequest.getAmount())
+                .refundReason(refundRequest.getReason())
+                .status(payment.getStatus())
+                .refundedAt(payment.getRefundedAt())
+                .build();
     }
 
     private void validatePaymentAmount(BigDecimal amount) {

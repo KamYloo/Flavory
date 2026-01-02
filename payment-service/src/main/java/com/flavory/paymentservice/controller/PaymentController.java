@@ -2,8 +2,10 @@ package com.flavory.paymentservice.controller;
 
 import com.flavory.paymentservice.dto.request.ConfirmPaymentRequest;
 import com.flavory.paymentservice.dto.request.CreatePaymentIntentRequest;
+import com.flavory.paymentservice.dto.request.RefundRequest;
 import com.flavory.paymentservice.dto.response.PaymentIntentResponse;
 import com.flavory.paymentservice.dto.response.PaymentResponse;
+import com.flavory.paymentservice.dto.response.RefundResponse;
 import com.flavory.paymentservice.security.JwtService;
 import com.flavory.paymentservice.service.PaymentService;
 import com.flavory.paymentservice.util.SecurityUtils;
@@ -126,5 +128,14 @@ public class PaymentController {
 
         Page<PaymentResponse> payments = paymentService.getCookPayments(cookId, pageable);
         return ResponseEntity.ok(payments);
+    }
+
+    @PostMapping("/{id}/refund")
+    public ResponseEntity<RefundResponse> refundPayment(
+            @PathVariable Long id,
+            @Valid @RequestBody RefundRequest request) {
+
+        RefundResponse response = paymentService.refundPayment(id, request);
+        return ResponseEntity.ok(response);
     }
 }
