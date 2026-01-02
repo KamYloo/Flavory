@@ -111,4 +111,20 @@ public class PaymentController {
         Page<PaymentResponse> payments = paymentService.getCustomerPayments(customerId, pageable);
         return ResponseEntity.ok(payments);
     }
+
+    @GetMapping("/cook/{cookId}")
+    public ResponseEntity<Page<PaymentResponse>> getCookPayments(
+            @PathVariable String cookId,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
+            Authentication authentication) {
+
+        String userId = jwtService.extractAuth0Id(authentication);
+
+        if (!cookId.equals(userId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        Page<PaymentResponse> payments = paymentService.getCookPayments(cookId, pageable);
+        return ResponseEntity.ok(payments);
+    }
 }

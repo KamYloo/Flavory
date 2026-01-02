@@ -14,4 +14,5 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     Optional<Payment> findByStripePaymentIntentId(String stripePaymentIntentId);
     Optional<Payment> findByOrderId(Long orderId);
     Page<Payment> findByCustomerId(String customerId, Pageable pageable);
+    Page<Payment> findByCookId(String cookId, Pageable pageable);
 }

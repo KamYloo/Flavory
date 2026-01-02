@@ -13,4 +13,5 @@ public interface PaymentService {
     PaymentResponse getPaymentById(Long paymentId);
     PaymentResponse getPaymentByOrderId(Long orderId);
     Page<PaymentResponse> getCustomerPayments(String customerId, Pageable pageable);
+    Page<PaymentResponse> getCookPayments(String cookId, Pageable pageable);
 }

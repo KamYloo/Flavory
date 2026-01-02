@@ -146,6 +146,12 @@ public class PaymentServiceImpl implements PaymentService {
                 .map(paymentMapper::toPaymentResponse);
     }
 
+    @Transactional(readOnly = true)
+    public Page<PaymentResponse> getCookPayments(String cookId, Pageable pageable) {
+        return paymentRepository.findByCookId(cookId, pageable)
+                .map(paymentMapper::toPaymentResponse);
+    }
+
     private void validatePaymentAmount(BigDecimal amount) {
         if (amount == null || amount.compareTo(MIN_PAYMENT_AMOUNT) < 0) {
             throw new InvalidPaymentAmountException(amount);
