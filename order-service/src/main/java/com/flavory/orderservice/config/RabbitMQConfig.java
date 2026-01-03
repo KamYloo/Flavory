@@ -13,14 +13,19 @@ import org.springframework.retry.support.RetryTemplate;
 public class RabbitMQConfig {
 
     public static final String ORDER_EXCHANGE = "order.events";
-    public static final String DLX_EXCHANGE = "dlx.exchange";
+    public static final String PAYMENT_EXCHANGE = "payment.events";
     public static final String DELIVERY_EXCHANGE = "delivery.events";
+    public static final String DLX_EXCHANGE = "dlx.exchange";
 
 
     public static final String ORDER_PLACED_QUEUE = "dish.order.placed.queue";
     public static final String ORDER_COMPLETED_QUEUE = "dish.order.completed.queue";
     public static final String ORDER_CANCELLED_QUEUE = "dish.order.cancelled.queue";
     public static final String ORDER_READY_QUEUE = "delivery.order.ready.queue";
+
+    public static final String PAYMENT_SUCCEEDED_QUEUE = "order.payment.succeeded.queue";
+    public static final String PAYMENT_FAILED_QUEUE = "order.payment.failed.queue";
+    public static final String PAYMENT_REFUNDED_QUEUE = "order.payment.refunded.queue";
 
     public static final String DELIVERY_STARTED_QUEUE = "order.delivery.started.queue";
     public static final String DELIVERY_PICKED_UP_QUEUE = "order.delivery.picked_up.queue";
@@ -31,6 +36,10 @@ public class RabbitMQConfig {
     public static final String ORDER_CANCELLED_ROUTING_KEY = "order.cancelled";
     public static final String ORDER_READY_ROUTING_KEY = "order.ready";
 
+    public static final String PAYMENT_SUCCEEDED_ROUTING_KEY = "payment.succeeded";
+    public static final String PAYMENT_FAILED_ROUTING_KEY = "payment.failed";
+    public static final String PAYMENT_REFUNDED_ROUTING_KEY = "payment.refunded";
+
     public static final String DELIVERY_STARTED_ROUTING_KEY = "delivery.started";
     public static final String DELIVERY_PICKED_UP_ROUTING_KEY = "delivery.picked_up";
     public static final String DELIVERY_COMPLETED_ROUTING_KEY = "delivery.completed";
@@ -39,6 +48,14 @@ public class RabbitMQConfig {
     public TopicExchange orderExchange() {
         return ExchangeBuilder
                 .topicExchange(ORDER_EXCHANGE)
+                .durable(true)
+                .build();
+    }
+
+    @Bean
+    public TopicExchange paymentExchange() {
+        return ExchangeBuilder
+                .topicExchange(PAYMENT_EXCHANGE)
                 .durable(true)
                 .build();
     }
@@ -97,6 +114,33 @@ public class RabbitMQConfig {
     }
 
     @Bean
+    public Queue paymentSucceededQueue() {
+        return QueueBuilder
+                .durable(PAYMENT_SUCCEEDED_QUEUE)
+                .withArgument("x-dead-letter-exchange", DLX_EXCHANGE)
+                .withArgument("x-dead-letter-routing-key", "dlq.payment.succeeded")
+                .build();
+    }
+
+    @Bean
+    public Queue paymentFailedQueue() {
+        return QueueBuilder
+                .durable(PAYMENT_FAILED_QUEUE)
+                .withArgument("x-dead-letter-exchange", DLX_EXCHANGE)
+                .withArgument("x-dead-letter-routing-key", "dlq.payment.failed")
+                .build();
+    }
+
+    @Bean
+    public Queue paymentRefundedQueue() {
+        return QueueBuilder
+                .durable(PAYMENT_REFUNDED_QUEUE)
+                .withArgument("x-dead-letter-exchange", DLX_EXCHANGE)
+                .withArgument("x-dead-letter-routing-key", "dlq.payment.refunded")
+                .build();
+    }
+
+    @Bean
     public Queue deliveryStartedQueue() {
         return QueueBuilder
                 .durable(DELIVERY_STARTED_QUEUE)
@@ -144,6 +188,30 @@ public class RabbitMQConfig {
                 .bind(orderReadyQueue())
                 .to(orderExchange())
                 .with(ORDER_READY_ROUTING_KEY);
+    }
+
+    @Bean
+    public Binding paymentSucceededBinding() {
+        return BindingBuilder
+                .bind(paymentSucceededQueue())
+                .to(paymentExchange())
+                .with(PAYMENT_SUCCEEDED_ROUTING_KEY);
+    }
+
+    @Bean
+    public Binding paymentFailedBinding() {
+        return BindingBuilder
+                .bind(paymentFailedQueue())
+                .to(paymentExchange())
+                .with(PAYMENT_FAILED_ROUTING_KEY);
+    }
+
+    @Bean
+    public Binding paymentRefundedBinding() {
+        return BindingBuilder
+                .bind(paymentRefundedQueue())
+                .to(paymentExchange())
+                .with(PAYMENT_REFUNDED_ROUTING_KEY);
     }
 
     @Bean
