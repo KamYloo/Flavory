@@ -1,6 +1,7 @@
 package com.flavory.paymentservice.repository;
 
 import com.flavory.paymentservice.entity.Payment;
+import com.flavory.paymentservice.entity.PaymentStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -19,6 +20,7 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
     Optional<Payment> findByOrderId(Long orderId);
     Page<Payment> findByCustomerId(String customerId, Pageable pageable);
     Page<Payment> findByCookId(String cookId, Pageable pageable);
+    List<Payment> findByStatus(PaymentStatus status);
 
     @Query("SELECT p FROM Payment p WHERE p.status = 'PENDING' AND p.createdAt < :expiryTime")
     List<Payment> findExpiredPendingPayments(@Param("expiryTime") LocalDateTime expiryTime);
