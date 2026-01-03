@@ -18,6 +18,7 @@ public class PaymentEvent {
     private BigDecimal amount;
     private PaymentStatus status;
     private String stripePaymentIntentId;
+    private String paymentMethod;
     private LocalDateTime timestamp;
     private PaymentEventType eventType;
 }

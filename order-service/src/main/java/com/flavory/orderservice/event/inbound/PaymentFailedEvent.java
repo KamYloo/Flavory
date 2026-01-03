@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class PaymentSucceededEvent {
+public class PaymentFailedEvent {
     private Long paymentId;
     private Long orderId;
     private String customerId;
@@ -20,7 +20,7 @@ public class PaymentSucceededEvent {
     private BigDecimal amount;
     private String status;
     private String stripePaymentIntentId;
-    private String paymentMethod;
+    private String failureReason;
     private LocalDateTime timestamp;
     private String eventType;
     private String eventId;

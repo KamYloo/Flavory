@@ -3,6 +3,7 @@ package com.flavory.orderservice.messaging.listener;
 import com.flavory.orderservice.config.RabbitMQConfig;
 import com.flavory.orderservice.entity.Order;
 import com.flavory.orderservice.entity.ProcessedEventEntity;
+import com.flavory.orderservice.event.inbound.PaymentFailedEvent;
 import com.flavory.orderservice.event.inbound.PaymentSucceededEvent;
 import com.flavory.orderservice.exception.OrderNotFoundException;
 import com.flavory.orderservice.repository.OrderRepository;
@@ -44,6 +45,10 @@ public class PaymentEventListener {
                 order.setPaymentTransactionId(event.getStripePaymentIntentId());
             }
 
+            if (event.getPaymentMethod() != null) {
+                order.setPaymentMethod(event.getPaymentMethod());
+            }
+
             orderRepository.save(order);
             markEventAsProcessed(event.getEventId());
 
@@ -52,6 +57,27 @@ public class PaymentEventListener {
             throw e;
         } catch (Exception e) {
             throw new RuntimeException("Failed to process PaymentSucceededEvent", e);
+        }
+    }
+
+    @Transactional
+    @RabbitListener(queues = RabbitMQConfig.PAYMENT_FAILED_QUEUE)
+    public void handlePaymentFailed(PaymentFailedEvent event) {
+        if (isEventProcessed(event.getEventId())) {
+            return;
+        }
+
+        try {
+            Order order = orderRepository.findById(event.getOrderId())
+                    .orElseThrow(() -> new OrderNotFoundException(event.getOrderId()));
+
+            order.updateStatus(Order.OrderStatus.CANCELLED);
+
+            orderRepository.save(order);
+            markEventAsProcessed(event.getEventId());
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to process PaymentFailedEvent", e);
         }
     }
 
