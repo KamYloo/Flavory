@@ -4,19 +4,20 @@ import com.flavory.orderservice.config.RabbitMQConfig;
 import com.flavory.orderservice.entity.Order;
 import com.flavory.orderservice.entity.ProcessedEventEntity;
 import com.flavory.orderservice.event.inbound.PaymentFailedEvent;
+import com.flavory.orderservice.event.inbound.PaymentRefundedEvent;
 import com.flavory.orderservice.event.inbound.PaymentSucceededEvent;
 import com.flavory.orderservice.exception.OrderNotFoundException;
 import com.flavory.orderservice.repository.OrderRepository;
 import com.flavory.orderservice.repository.ProcessedEventRepository;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Component
 @RequiredArgsConstructor
-@Slf4j
 public class PaymentEventListener {
 
     private final OrderRepository orderRepository;
@@ -78,6 +79,35 @@ public class PaymentEventListener {
 
         } catch (Exception e) {
             throw new RuntimeException("Failed to process PaymentFailedEvent", e);
+        }
+    }
+
+    @Transactional
+    @RabbitListener(queues = RabbitMQConfig.PAYMENT_REFUNDED_QUEUE)
+    public void handlePaymentRefunded(PaymentRefundedEvent event) {
+        if (isEventProcessed(event.getEventId())) {
+            return;
+        }
+
+        try {
+            Order order = orderRepository.findById(event.getOrderId())
+                    .orElseThrow(() -> new OrderNotFoundException(event.getOrderId()));
+
+            if (List.of(Order.OrderStatus.PENDING, Order.OrderStatus.PAID, Order.OrderStatus.CONFIRMED, Order.OrderStatus.PREPARING, Order.OrderStatus.READY).contains(order.getStatus())) {
+                order.updateStatus(Order.OrderStatus.CANCELLED);
+                order.setCancellationReason("Płatność została zwrócona przez operatora płatności.");
+            }
+
+            else if (order.getStatus() == Order.OrderStatus.DELIVERED) {
+                order.setRefunded(true);
+                order.setRefundAmount(event.getAmount());
+            }
+
+            orderRepository.save(order);
+            markEventAsProcessed(event.getEventId());
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to process refund", e);
         }
     }
 

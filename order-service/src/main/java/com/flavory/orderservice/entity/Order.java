@@ -118,6 +118,12 @@ public class Order {
     @Column(name = "cancellation_reason", length = 500)
     private String cancellationReason;
 
+    @Column(name = "is_refunded")
+    private boolean isRefunded = false;
+
+    @Column(name = "refund_amount")
+    private BigDecimal refundAmount;
+
     @CreatedDate
     @Column(nullable = false, updatable = false, name = "created_at")
     private LocalDateTime createdAt;
