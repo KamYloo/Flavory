@@ -1,7 +1,8 @@
 {
   "expo": {
-    "name": "flavory-mobile",
+    "name": "Flavory",
     "slug": "flavory-mobile",
+    "scheme": "com.flavory.mobile",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -20,11 +21,20 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
+      "package": "com.kamylo.flavory",
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "react-native-auth0",
+        {
+          "domain": "dev-8vgncf3rshvz2c80.eu.auth0.com"
+        }
+      ]
+    ]
   }
 }
