@@ -7,6 +7,7 @@ import com.flavory.dishservice.event.inbound.OrderCompletedEvent;
 import com.flavory.dishservice.event.inbound.OrderPlacedEvent;
 import com.flavory.dishservice.repository.ProcessedEventRepository;
 import com.flavory.dishservice.service.DishService;
+import com.flavory.dishservice.utils.EventProcessedUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
@@ -16,12 +17,12 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class OrderEventListener {
     private final DishService dishService;
-    private final ProcessedEventRepository processedEventRepository;
+    private final EventProcessedUtil eventProcessedUtil;
 
     @Transactional
     @RabbitListener(queues = RabbitMQConfig.ORDER_PLACED_QUEUE)
     public void handleOrderPlaced(OrderPlacedEvent event) {
-        if (isEventProcessed(event.getEventId())) {
+        if (eventProcessedUtil.isEventProcessed(event.getEventId())) {
             return;
         }
 
@@ -34,13 +35,13 @@ public class OrderEventListener {
                         "Failed to decrease stock for dish " + item.getDishId(), e);
             }
         }
-        markEventAsProcessed(event.getEventId());
+        eventProcessedUtil.markEventAsProcessed(event.getEventId());
     }
 
     @RabbitListener(queues = RabbitMQConfig.ORDER_COMPLETED_QUEUE)
     @Transactional
     public void handleOrderCompleted(OrderCompletedEvent event) {
-        if (isEventProcessed(event.getEventId())) {
+        if (eventProcessedUtil.isEventProcessed(event.getEventId())) {
             return;
         }
 
@@ -52,13 +53,13 @@ public class OrderEventListener {
             dishService.updateDishRating(event.getRatedDishId(), event.getDishRating());
         }
 
-        markEventAsProcessed(event.getEventId());
+        eventProcessedUtil.markEventAsProcessed(event.getEventId());
     }
 
     @RabbitListener(queues = RabbitMQConfig.ORDER_CANCELLED_QUEUE)
     @Transactional
     public void handleOrderCancelled(OrderCancelledEvent event) {
-        if (isEventProcessed(event.getEventId())) {
+        if (eventProcessedUtil.isEventProcessed(event.getEventId())) {
             return;
         }
 
@@ -70,25 +71,6 @@ public class OrderEventListener {
                         "Failed to increase stock for dish " + item.getDishId(), e);
             }
         }
-        markEventAsProcessed(event.getEventId());
-    }
-
-    private boolean isEventProcessed(String eventId) {
-        if (eventId == null) {
-            return false;
-        }
-        return processedEventRepository.existsByEventId(eventId);
-    }
-
-    private void markEventAsProcessed(String eventId) {
-        if (eventId == null) {
-            return;
-        }
-        try {
-            ProcessedEventEntity entity = new ProcessedEventEntity(eventId);
-            processedEventRepository.save(entity);
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to mark event as processed", e);
-        }
+        eventProcessedUtil.markEventAsProcessed(event.getEventId());
     }
 }

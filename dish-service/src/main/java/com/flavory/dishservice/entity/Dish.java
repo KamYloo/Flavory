@@ -123,6 +123,10 @@ public class Dish {
     @Column(nullable = false, name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "cook_id", referencedColumnName = "cook_id", insertable = false, updatable = false)
+    private CookProfile cookProfile;
+
     @Version
     private Long version;
 

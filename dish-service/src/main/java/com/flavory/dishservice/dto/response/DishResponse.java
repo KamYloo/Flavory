@@ -20,6 +20,7 @@ import java.util.Set;
 public class DishResponse {
     private Long id;
     private String cookId;
+    private CookSummaryDto cook;
     private String name;
     private String description;
     private BigDecimal price;

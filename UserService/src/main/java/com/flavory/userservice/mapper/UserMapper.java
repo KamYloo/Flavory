@@ -6,9 +6,12 @@ import com.flavory.userservice.entity.User;
 import com.flavory.userservice.event.outbound.UserUpdatedEvent;
 import org.mapstruct.*;
 
+import java.util.UUID;
+
 @Mapper(
         componentModel = "spring",
         uses = {AddressMapper.class},
+        imports = {UUID.class},
         nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE
 )
 public interface UserMapper {

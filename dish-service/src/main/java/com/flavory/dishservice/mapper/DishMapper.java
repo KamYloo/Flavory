@@ -3,9 +3,11 @@ package com.flavory.dishservice.mapper;
 import com.flavory.dishservice.dto.request.CreateDishRequest;
 import com.flavory.dishservice.dto.request.NutritionInfoRequest;
 import com.flavory.dishservice.dto.request.UpdateDishRequest;
+import com.flavory.dishservice.dto.response.CookSummaryDto;
 import com.flavory.dishservice.dto.response.DishInternalResponse;
 import com.flavory.dishservice.dto.response.DishResponse;
 import com.flavory.dishservice.dto.response.NutritionInfoResponse;
+import com.flavory.dishservice.entity.CookProfile;
 import com.flavory.dishservice.entity.Dish;
 import com.flavory.dishservice.entity.NutritionInfo;
 import org.mapstruct.*;
@@ -22,6 +24,7 @@ public interface DishMapper {
 
     @Mapping(target = "categoryDisplayName", source = "category", qualifiedByName = "mapCategoryDisplayName")
     @Mapping(target = "allergenDisplayNames", source = "allergens", qualifiedByName = "mapAllergenDisplayNames")
+    @Mapping(target = "cook", source = ".", qualifiedByName = "mapCookSummary")
     DishResponse toResponse(Dish dish);
 
     @Mapping(target = "category", expression = "java(dish.getCategory() != null ? dish.getCategory().name() : null)")
@@ -30,6 +33,7 @@ public interface DishMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "cookId", ignore = true)
+    @Mapping(target = "cookProfile", ignore = true)
     @Mapping(target = "images", ignore = true)
     @Mapping(target = "available", constant = "true")
     @Mapping(target = "featured", constant = "false")
@@ -49,6 +53,7 @@ public interface DishMapper {
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "cookId", ignore = true)
+    @Mapping(target = "cookProfile", ignore = true)
     @Mapping(target = "images", ignore = true)
     @Mapping(target = "currentStock", ignore = true)
     @Mapping(target = "maxDailyStock", ignore = true)
@@ -82,5 +87,30 @@ public interface DishMapper {
         return allergens.stream()
                 .map(Dish.Allergen::getDisplayName)
                 .collect(Collectors.toSet());
+    }
+
+    @Named("mapCookSummary")
+    default CookSummaryDto mapCookSummary(Dish dish) {
+        if (dish.getCookProfile() == null) {
+            return CookSummaryDto.builder()
+                    .fullName("")
+                    .profileImageUrl(null)
+                    .role(null)
+                    .status(null)
+                    .build();
+        }
+
+        CookProfile profile = dish.getCookProfile();
+
+        String fullName = (profile.getFirstName() != null ? profile.getFirstName() : "")
+                + " "
+                + (profile.getLastName() != null ? profile.getLastName() : "");
+
+        return CookSummaryDto.builder()
+                .fullName(fullName.trim())
+                .profileImageUrl(profile.getProfileImageUrl())
+                .role(profile.getRole() != null ? profile.getRole() : null)
+                .status(profile.getStatus() != null ? profile.getStatus() : null)
+                .build();
     }
 }

@@ -15,6 +15,8 @@ public class RabbitMQConfig {
     public static final String ORDER_EXCHANGE = "order.events";
     public static final String USER_EXCHANGE = "user.events";
 
+    public static final String USER_UPDATED_QUEUE = "dish.user.updated.queue";
+
     public static final String DISH_CREATED_QUEUE = "dish.created.queue";
     public static final String DISH_UPDATED_QUEUE = "dish.updated.queue";
     public static final String DISH_DELETED_QUEUE = "dish.deleted.queue";
@@ -28,6 +30,8 @@ public class RabbitMQConfig {
     public static final String DISH_UPDATED_ROUTING_KEY = "dish.updated";
     public static final String DISH_DELETED_ROUTING_KEY = "dish.deleted";
     public static final String DISH_AVAILABILITY_CHANGED_ROUTING_KEY = "dish.availability.changed";
+
+    public static final String USER_UPDATED_ROUTING_KEY = "user.updated";
 
     public static final String ORDER_PLACED_ROUTING_KEY = "order.placed";
     public static final String ORDER_COMPLETED_ROUTING_KEY = "order.completed";
@@ -64,6 +68,15 @@ public class RabbitMQConfig {
         return ExchangeBuilder
                 .directExchange(DLX_EXCHANGE)
                 .durable(true)
+                .build();
+    }
+
+    @Bean
+    public Queue userUpdatedQueue() {
+        return QueueBuilder
+                .durable(USER_UPDATED_QUEUE)
+                .withArgument("x-dead-letter-exchange", DLX_EXCHANGE)
+                .withArgument("x-dead-letter-routing-key", "dlq.user.updated")
                 .build();
     }
 
@@ -163,6 +176,14 @@ public class RabbitMQConfig {
                 .bind(dishAvailabilityChangedQueue)
                 .to(dishExchange)
                 .with(DISH_AVAILABILITY_CHANGED_ROUTING_KEY);
+    }
+
+    @Bean
+    public Binding userUpdatedBinding(Queue userUpdatedQueue, TopicExchange userExchange) {
+        return BindingBuilder
+                .bind(userUpdatedQueue)
+                .to(userExchange)
+                .with(USER_UPDATED_ROUTING_KEY);
     }
 
     @Bean
