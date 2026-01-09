@@ -5,8 +5,10 @@ import com.flavory.userservice.dto.response.UserResponse;
 import com.flavory.userservice.entity.User;
 import com.flavory.userservice.entity.enums.UserRole;
 import com.flavory.userservice.entity.enums.UserStatus;
+import com.flavory.userservice.event.outbound.UserUpdatedEvent;
 import com.flavory.userservice.exception.UserNotFoundException;
 import com.flavory.userservice.mapper.UserMapper;
+import com.flavory.userservice.messaging.publisher.UserEventPublisher;
 import com.flavory.userservice.repository.UserRepository;
 import com.flavory.userservice.security.JwtClaims;
 import com.flavory.userservice.service.UserService;
@@ -19,7 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final UserMapper userMapper;
-
+    private final UserEventPublisher eventPublisher;
 
     @Override
     @Transactional
@@ -30,6 +32,7 @@ public class UserServiceImpl implements UserService {
 
                     if (updated) {
                         user = userRepository.save(user);
+                        eventPublisher.publishUserUpdated(user);
                     }
 
                     return userMapper.toResponse(user);
@@ -55,6 +58,7 @@ public class UserServiceImpl implements UserService {
 
         userMapper.updateEntityFromDto(request, user);
         User userUpdated = userRepository.save(user);
+        eventPublisher.publishUserUpdated(user);
         return userMapper.toResponse(userUpdated);
     }
 
@@ -81,7 +85,7 @@ public class UserServiceImpl implements UserService {
                 .build();
 
         User savedUser = userRepository.save(newUser);
-
+        eventPublisher.publishUserUpdated(savedUser);
         return userMapper.toResponse(savedUser);
     }
 

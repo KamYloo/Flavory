@@ -3,6 +3,7 @@ package com.flavory.userservice.mapper;
 import com.flavory.userservice.dto.request.UpdateUserRequest;
 import com.flavory.userservice.dto.response.UserResponse;
 import com.flavory.userservice.entity.User;
+import com.flavory.userservice.event.outbound.UserUpdatedEvent;
 import org.mapstruct.*;
 
 @Mapper(
@@ -26,4 +27,7 @@ public interface UserMapper {
     @Mapping(target = "updatedAt", ignore = true)
     @Mapping(target = "isVerified", ignore = true)
     void updateEntityFromDto(UpdateUserRequest request, @MappingTarget User user);
+
+    @Mapping(target = "eventId", expression = "java(UUID.randomUUID().toString())")
+    UserUpdatedEvent toUserUpdatedEvent(User user);
 }
