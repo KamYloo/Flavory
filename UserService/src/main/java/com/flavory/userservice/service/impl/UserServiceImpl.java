@@ -11,10 +11,12 @@ import com.flavory.userservice.mapper.UserMapper;
 import com.flavory.userservice.messaging.publisher.UserEventPublisher;
 import com.flavory.userservice.repository.UserRepository;
 import com.flavory.userservice.security.JwtClaims;
+import com.flavory.userservice.service.FileStorageService;
 import com.flavory.userservice.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @RequiredArgsConstructor
@@ -22,6 +24,7 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final UserMapper userMapper;
     private final UserEventPublisher eventPublisher;
+    private final FileStorageService fileStorageService;
 
     @Override
     @Transactional
@@ -49,7 +52,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public UserResponse updateUser(Long id, UpdateUserRequest request, String currentAuth0Id) {
+    public UserResponse updateUser(Long id, UpdateUserRequest request, String currentAuth0Id, MultipartFile image) {
         User user = userRepository.findById(id).orElseThrow(UserNotFoundException::new);
 
         if (!user.getAuth0Id().equals(currentAuth0Id)) {
@@ -57,6 +60,12 @@ public class UserServiceImpl implements UserService {
         }
 
         userMapper.updateEntityFromDto(request, user);
+
+        if (image != null && !image.isEmpty()) {
+            String imageUrl = fileStorageService.storeFile(image);
+            user.setProfileImageUrl(imageUrl);
+        }
+
         User userUpdated = userRepository.save(user);
         eventPublisher.publishUserUpdated(user);
         return userMapper.toResponse(userUpdated);
@@ -99,11 +108,6 @@ public class UserServiceImpl implements UserService {
 
         if (claims.getFamilyName() != null && !claims.getFamilyName().equals(user.getLastName())) {
             user.setLastName(claims.getFamilyName());
-            updated = true;
-        }
-
-        if (claims.getPicture() != null && !claims.getPicture().equals(user.getProfileImageUrl())) {
-            user.setProfileImageUrl(claims.getPicture());
             updated = true;
         }
 

@@ -84,6 +84,20 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 
+    @ExceptionHandler(FileStorageException.class)
+    public ResponseEntity<ErrorResponse> handleFileStorageException(
+            FileStorageException ex,
+            HttpServletRequest request) {
+
+        ErrorResponse error = ErrorResponse.of(
+                "FILE_STORAGE_ERROR",
+                ex.getMessage(),
+                request.getRequestURI()
+        );
+
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+    }
+
     @ExceptionHandler(BusinessValidationException.class)
     public ResponseEntity<ErrorResponse> handleBusinessValidation(
             BusinessValidationException ex,

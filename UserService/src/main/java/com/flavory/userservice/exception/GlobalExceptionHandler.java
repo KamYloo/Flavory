@@ -1,6 +1,5 @@
 package com.flavory.userservice.exception;
 
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -14,13 +13,11 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @RestControllerAdvice
-@Slf4j
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ErrorResponse> handleBusinessException(
             BusinessException ex, WebRequest request) {
-        log.error("Business exception: {}", ex.getMessage());
 
         HttpStatus status = mapErrorCodeToStatus(ex.getErrorCode());
 
@@ -39,7 +36,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidationException(
             MethodArgumentNotValidException ex, WebRequest request) {
-        log.error("Validation error: {}", ex.getMessage());
 
         List<ErrorResponse.ValidationError> validationErrors = ex.getBindingResult()
                 .getFieldErrors()
@@ -63,7 +59,6 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGenericException(
             Exception ex, WebRequest request) {
-        log.error("Unexpected error: ", ex);
 
         ErrorResponse error = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())

@@ -25,9 +25,4 @@ public class UpdateUserRequest {
 
     @Size(max = 1000)
     private String cookDescription;
-
-    @Size(max = 500)
-    @Pattern(regexp = "^(https?://).*\\.(jpg|jpeg|png|gif|webp)$",
-            message = "Invalid image URL format\"")
-    private String profileImageUrl;
 }
