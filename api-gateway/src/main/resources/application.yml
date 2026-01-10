@@ -31,6 +31,17 @@ spring:
               uri: lb://payment-service
               predicates:
                 - Path=/api/payments/**, /api/webhooks/stripe/**
+
+            - id: dish-images-route
+              uri: lb://dish-service
+              predicates:
+                - Path=/uploads/dishes/**
+
+            - id: user-images-route
+              uri: lb://user-service
+              predicates:
+                - Path=/uploads/users/**
+
           discovery:
             locator:
               enabled: false

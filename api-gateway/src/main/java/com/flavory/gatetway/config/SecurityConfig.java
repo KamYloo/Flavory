@@ -28,6 +28,7 @@ public class SecurityConfig {
                 .authorizeExchange(exchange -> exchange
                         .pathMatchers(HttpMethod.OPTIONS).permitAll()
                         .pathMatchers("/actuator/**").permitAll()
+                        .pathMatchers("/uploads/**").permitAll()
                         .anyExchange().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2
@@ -38,7 +39,8 @@ public class SecurityConfig {
 
     private CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:3000", "http://192.168.1.105:9000", "https://flavory.com"));
+        config.setAllowedOriginPatterns(Collections.singletonList("*"));
+//        config.setAllowedOrigins(List.of("http://localhost:3000", "http://192.168.1.105:9000", "https://flavory.com"));
         config.setAllowedMethods(Collections.singletonList("*"));
         config.setAllowedHeaders(Collections.singletonList("*"));
         config.setAllowCredentials(true);
