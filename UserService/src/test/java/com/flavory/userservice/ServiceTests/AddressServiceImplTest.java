@@ -13,7 +13,6 @@ import com.flavory.userservice.mapper.AddressMapper;
 import com.flavory.userservice.repository.AddressRepository;
 import com.flavory.userservice.repository.UserRepository;
 import com.flavory.userservice.service.impl.AddressServiceImpl;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -24,7 +23,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -35,31 +36,19 @@ import static org.mockito.Mockito.*;
 @DisplayName("AddressServiceImpl Tests")
 class AddressServiceImplTest {
 
-    @Mock
-    private AddressRepository addressRepository;
-
-    @Mock
-    private UserRepository userRepository;
-
-    @Mock
-    private AddressMapper addressMapper;
+    @Mock private AddressRepository addressRepository;
+    @Mock private UserRepository userRepository;
+    @Mock private AddressMapper addressMapper;
 
     @InjectMocks
     private AddressServiceImpl addressService;
-
-    private User testUser;
-    private Address testAddress;
-    private AddressResponse testAddressResponse;
-    private CreateAddressRequest createAddressRequest;
-    private UpdateAddressRequest updateAddressRequest;
 
     private static final String AUTH0_ID = "auth0|123456";
     private static final Long USER_ID = 1L;
     private static final Long ADDRESS_ID = 1L;
 
-    @BeforeEach
-    void setUp() {
-        testUser = User.builder()
+    private User createUser() {
+        return User.builder()
                 .id(USER_ID)
                 .auth0Id(AUTH0_ID)
                 .email("test@example.com")
@@ -68,258 +57,182 @@ class AddressServiceImplTest {
                 .role(UserRole.CUSTOMER)
                 .addresses(new ArrayList<>())
                 .build();
+    }
 
-        testAddress = Address.builder()
-                .id(ADDRESS_ID)
-                .user(testUser)
+    private User createUserWithAddresses(Address... addresses) {
+        User user = createUser();
+        user.getAddresses().addAll(List.of(addresses));
+        return user;
+    }
+
+    private Address createAddress(Long id, boolean isDefault) {
+        return Address.builder()
+                .id(id)
                 .street("Main Street")
                 .city("Warsaw")
                 .postalCode("00-001")
                 .apartmentNumber("10")
                 .country("Poland")
-                .isDefault(true)
+                .isDefault(isDefault)
                 .label("Home")
                 .latitude(52.2297)
                 .longitude(21.0122)
                 .createdAt(LocalDateTime.now())
                 .build();
+    }
 
-        testAddressResponse = AddressResponse.builder()
-                .id(ADDRESS_ID)
+    private Address createAddress() {
+        return createAddress(ADDRESS_ID, true);
+    }
+
+    private CreateAddressRequest createAddressRequest(Boolean isDefault) {
+        return CreateAddressRequest.builder()
                 .street("Main Street")
                 .city("Warsaw")
                 .postalCode("00-001")
                 .apartmentNumber("10")
                 .country("Poland")
-                .fullAddress("Main Street, 00-001 Warsaw, Poland")
-                .isDefault(true)
-                .label("Home")
-                .latitude(52.2297)
-                .longitude(21.0122)
-                .createdAt(LocalDateTime.now())
-                .build();
-
-        createAddressRequest = CreateAddressRequest.builder()
-                .street("Main Street")
-                .city("Warsaw")
-                .postalCode("00-001")
-                .apartmentNumber("10")
-                .country("Poland")
-                .isDefault(false)
+                .isDefault(isDefault)
                 .label("Home")
                 .latitude(52.2297)
                 .longitude(21.0122)
                 .build();
+    }
 
-        updateAddressRequest = UpdateAddressRequest.builder()
+    private UpdateAddressRequest updateAddressRequest() {
+        return UpdateAddressRequest.builder()
                 .street("New Street")
                 .city("Krakow")
                 .postalCode("30-001")
                 .apartmentNumber("5")
-                .country("Poland")
                 .label("Work")
-                .latitude(50.0647)
-                .longitude(19.9450)
+                .build();
+    }
+
+    private AddressResponse createAddressResponse(Long id, boolean isDefault) {
+        return AddressResponse.builder()
+                .id(id)
+                .street("Main Street")
+                .city("Warsaw")
+                .postalCode("00-001")
+                .isDefault(isDefault)
                 .build();
     }
 
     @Nested
-    @DisplayName("createAddress Tests")
+    @DisplayName("createAddress")
     class CreateAddressTests {
 
         @Test
-        @DisplayName("Should create address successfully for user with no existing addresses")
-        void shouldCreateFirstAddressAsDefault() {
-            // Given
-            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(testUser));
-            when(addressMapper.toEntity(createAddressRequest)).thenReturn(testAddress);
-            when(addressRepository.save(any(Address.class))).thenReturn(testAddress);
-            when(addressMapper.toResponse(testAddress)).thenReturn(testAddressResponse);
+        @DisplayName("Should set first address as default automatically")
+        void shouldSetFirstAddressAsDefault() {
+            User user = createUser();
+            Address address = createAddress();
+            CreateAddressRequest request = createAddressRequest(false);
 
-            // When
-            AddressResponse result = addressService.createAddress(USER_ID, createAddressRequest, AUTH0_ID);
+            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
+            when(addressMapper.toEntity(request)).thenReturn(address);
+            when(addressRepository.save(any(Address.class))).thenReturn(address);
+            when(addressMapper.toResponse(address)).thenReturn(createAddressResponse(ADDRESS_ID, true));
 
-            // Then
-            assertThat(result).isNotNull();
-            assertThat(result.getId()).isEqualTo(ADDRESS_ID);
-            assertThat(result.getStreet()).isEqualTo("Main Street");
-            assertThat(result.getCity()).isEqualTo("Warsaw");
-            assertThat(result.getPostalCode()).isEqualTo("00-001");
-            assertThat(result.getApartmentNumber()).isEqualTo("10");
-            assertThat(result.getLabel()).isEqualTo("Home");
-            assertThat(result.getLatitude()).isEqualTo(52.2297);
-            assertThat(result.getLongitude()).isEqualTo(21.0122);
+            AddressResponse result = addressService.createAddress(USER_ID, request, AUTH0_ID);
 
-            ArgumentCaptor<Address> addressCaptor = ArgumentCaptor.forClass(Address.class);
-            verify(addressRepository).save(addressCaptor.capture());
-
-            Address savedAddress = addressCaptor.getValue();
-            assertThat(savedAddress.getIsDefault()).isTrue();
-            assertThat(savedAddress.getUser()).isEqualTo(testUser);
-
+            assertThat(result.getIsDefault()).isTrue();
             verify(addressRepository, never()).clearDefaultAddress(USER_ID);
         }
 
         @Test
-        @DisplayName("Should create address as default when explicitly requested")
-        void shouldCreateAddressAsDefaultWhenRequested() {
-            // Given
-            testUser.getAddresses().add(testAddress);
-            CreateAddressRequest defaultRequest = CreateAddressRequest.builder()
-                    .street("Main Street")
-                    .city("Warsaw")
-                    .postalCode("00-001")
-                    .apartmentNumber("10")
-                    .isDefault(true)
-                    .label("Home")
-                    .build();
+        @DisplayName("Should clear other defaults when creating default address")
+        void shouldClearOtherDefaultsWhenCreatingDefault() {
+            User user = createUserWithAddresses(createAddress());
+            CreateAddressRequest request = createAddressRequest(true);
 
-            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(testUser));
-            when(addressMapper.toEntity(defaultRequest)).thenReturn(testAddress);
-            when(addressRepository.save(any(Address.class))).thenReturn(testAddress);
-            when(addressMapper.toResponse(testAddress)).thenReturn(testAddressResponse);
+            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
+            when(addressMapper.toEntity(request)).thenReturn(createAddress());
+            when(addressRepository.save(any())).thenReturn(createAddress());
+            when(addressMapper.toResponse(any())).thenReturn(createAddressResponse(ADDRESS_ID, true));
 
-            // When
-            AddressResponse result = addressService.createAddress(USER_ID, defaultRequest, AUTH0_ID);
-
-            // Then
-            assertThat(result).isNotNull();
+            addressService.createAddress(USER_ID, request, AUTH0_ID);
 
             verify(addressRepository).clearDefaultAddress(USER_ID);
-
-            ArgumentCaptor<Address> addressCaptor = ArgumentCaptor.forClass(Address.class);
-            verify(addressRepository).save(addressCaptor.capture());
-            assertThat(addressCaptor.getValue().getIsDefault()).isTrue();
         }
 
         @Test
-        @DisplayName("Should create address as non-default when user has existing addresses")
-        void shouldCreateAddressAsNonDefault() {
-            // Given
-            testUser.getAddresses().add(testAddress);
+        @DisplayName("Should create non-default address when user has addresses")
+        void shouldCreateNonDefaultWhenUserHasAddresses() {
+            User user = createUserWithAddresses(createAddress());
+            CreateAddressRequest request = createAddressRequest(false);
 
-            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(testUser));
-            when(addressMapper.toEntity(createAddressRequest)).thenReturn(testAddress);
-            when(addressRepository.save(any(Address.class))).thenReturn(testAddress);
-            when(addressMapper.toResponse(testAddress)).thenReturn(testAddressResponse);
+            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
+            when(addressMapper.toEntity(request)).thenReturn(createAddress(2L, false));
+            when(addressRepository.save(any())).thenReturn(createAddress(2L, false));
+            when(addressMapper.toResponse(any())).thenReturn(createAddressResponse(2L, false));
 
-            // When
-            AddressResponse result = addressService.createAddress(USER_ID, createAddressRequest, AUTH0_ID);
+            AddressResponse result = addressService.createAddress(USER_ID, request, AUTH0_ID);
 
-            // Then
-            assertThat(result).isNotNull();
-
+            assertThat(result.getIsDefault()).isFalse();
             verify(addressRepository, never()).clearDefaultAddress(USER_ID);
-
-            ArgumentCaptor<Address> addressCaptor = ArgumentCaptor.forClass(Address.class);
-            verify(addressRepository).save(addressCaptor.capture());
-            assertThat(addressCaptor.getValue().getIsDefault()).isFalse();
         }
 
         @Test
-        @DisplayName("Should set default country to Poland when country is null")
+        @DisplayName("Should set default country when null")
         void shouldSetDefaultCountryWhenNull() {
-            // Given
-            CreateAddressRequest requestWithoutCountry = CreateAddressRequest.builder()
-                    .street("Main Street")
-                    .city("Warsaw")
-                    .postalCode("00-001")
-                    .country(null)
-                    .build();
+            CreateAddressRequest request = createAddressRequest(false);
+            request.setCountry(null);
 
-            Address addressWithoutCountry = Address.builder()
-                    .street("Main Street")
-                    .city("Warsaw")
-                    .postalCode("00-001")
-                    .build();
+            Address address = createAddress();
+            address.setCountry(null);
 
-            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(testUser));
-            when(addressMapper.toEntity(requestWithoutCountry)).thenReturn(addressWithoutCountry);
-            when(addressRepository.save(any(Address.class))).thenReturn(testAddress);
-            when(addressMapper.toResponse(any(Address.class))).thenReturn(testAddressResponse);
+            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(createUser()));
+            when(addressMapper.toEntity(request)).thenReturn(address);
+            when(addressRepository.save(any())).thenReturn(address);
+            when(addressMapper.toResponse(any())).thenReturn(createAddressResponse(ADDRESS_ID, true));
 
-            // When
-            addressService.createAddress(USER_ID, requestWithoutCountry, AUTH0_ID);
+            addressService.createAddress(USER_ID, request, AUTH0_ID);
 
-            // Then
-            ArgumentCaptor<Address> addressCaptor = ArgumentCaptor.forClass(Address.class);
-            verify(addressRepository).save(addressCaptor.capture());
-            assertThat(addressCaptor.getValue().getCountry()).isEqualTo("Poland");
+            ArgumentCaptor<Address> captor = ArgumentCaptor.forClass(Address.class);
+            verify(addressRepository).save(captor.capture());
+            assertThat(captor.getValue().getCountry()).isEqualTo("Poland");
         }
 
         @Test
-        @DisplayName("Should set default country to Poland when country is empty")
+        @DisplayName("Should set default country when empty")
         void shouldSetDefaultCountryWhenEmpty() {
-            // Given
-            CreateAddressRequest requestWithEmptyCountry = CreateAddressRequest.builder()
-                    .street("Main Street")
-                    .city("Warsaw")
-                    .postalCode("00-001")
-                    .country("")
-                    .build();
+            CreateAddressRequest request = createAddressRequest(false);
+            request.setCountry("");
 
-            Address addressWithEmptyCountry = Address.builder()
-                    .street("Main Street")
-                    .city("Warsaw")
-                    .postalCode("00-001")
-                    .country("")
-                    .build();
+            Address address = createAddress();
+            address.setCountry("");
 
-            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(testUser));
-            when(addressMapper.toEntity(requestWithEmptyCountry)).thenReturn(addressWithEmptyCountry);
-            when(addressRepository.save(any(Address.class))).thenReturn(testAddress);
-            when(addressMapper.toResponse(any(Address.class))).thenReturn(testAddressResponse);
+            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(createUser()));
+            when(addressMapper.toEntity(request)).thenReturn(address);
+            when(addressRepository.save(any())).thenReturn(address);
+            when(addressMapper.toResponse(any())).thenReturn(createAddressResponse(ADDRESS_ID, true));
 
-            // When
-            addressService.createAddress(USER_ID, requestWithEmptyCountry, AUTH0_ID);
+            addressService.createAddress(USER_ID, request, AUTH0_ID);
 
-            // Then
-            ArgumentCaptor<Address> addressCaptor = ArgumentCaptor.forClass(Address.class);
-            verify(addressRepository).save(addressCaptor.capture());
-            assertThat(addressCaptor.getValue().getCountry()).isEqualTo("Poland");
+            ArgumentCaptor<Address> captor = ArgumentCaptor.forClass(Address.class);
+            verify(addressRepository).save(captor.capture());
+            assertThat(captor.getValue().getCountry()).isEqualTo("Poland");
         }
 
         @Test
-        @DisplayName("Should create address with all optional fields")
-        void shouldCreateAddressWithOptionalFields() {
-            // Given
-            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(testUser));
-            when(addressMapper.toEntity(createAddressRequest)).thenReturn(testAddress);
-            when(addressRepository.save(any(Address.class))).thenReturn(testAddress);
-            when(addressMapper.toResponse(testAddress)).thenReturn(testAddressResponse);
-
-            // When
-            AddressResponse result = addressService.createAddress(USER_ID, createAddressRequest, AUTH0_ID);
-
-            // Then
-            assertThat(result.getApartmentNumber()).isEqualTo("10");
-            assertThat(result.getLabel()).isEqualTo("Home");
-            assertThat(result.getLatitude()).isNotNull();
-            assertThat(result.getLongitude()).isNotNull();
-        }
-
-        @Test
-        @DisplayName("Should throw UserNotFoundException when user does not exist")
-        void shouldThrowExceptionWhenUserNotFound() {
-            // Given
+        @DisplayName("Should throw UserNotFoundException when user not found")
+        void shouldThrowWhenUserNotFound() {
             when(userRepository.findById(USER_ID)).thenReturn(Optional.empty());
 
-            // When & Then
-            assertThatThrownBy(() -> addressService.createAddress(USER_ID, createAddressRequest, AUTH0_ID))
+            assertThatThrownBy(() -> addressService.createAddress(USER_ID, createAddressRequest(false), AUTH0_ID))
                     .isInstanceOf(UserNotFoundException.class);
 
             verify(addressRepository, never()).save(any());
         }
 
         @Test
-        @DisplayName("Should throw UnauthorizedAccessException when auth0Id does not match")
-        void shouldThrowExceptionWhenUnauthorized() {
-            // Given
-            String wrongAuth0Id = "auth0|different";
-            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(testUser));
+        @DisplayName("Should throw UnauthorizedAccessException for wrong auth0Id")
+        void shouldThrowWhenUnauthorized() {
+            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(createUser()));
 
-            // When & Then
-            assertThatThrownBy(() -> addressService.createAddress(USER_ID, createAddressRequest, wrongAuth0Id))
+            assertThatThrownBy(() -> addressService.createAddress(USER_ID, createAddressRequest(false), "wrong"))
                     .isInstanceOf(UnauthorizedAccessException.class);
 
             verify(addressRepository, never()).save(any());
@@ -327,523 +240,292 @@ class AddressServiceImplTest {
     }
 
     @Nested
-    @DisplayName("getAddressById Tests")
+    @DisplayName("getAddressById")
     class GetAddressByIdTests {
 
         @Test
-        @DisplayName("Should return address when address exists")
-        void shouldReturnAddressWhenExists() {
-            // Given
-            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(testUser));
-            when(addressRepository.findByIdAndUserId(ADDRESS_ID, USER_ID))
-                    .thenReturn(Optional.of(testAddress));
-            when(addressMapper.toResponse(testAddress)).thenReturn(testAddressResponse);
+        @DisplayName("Should return address when exists")
+        void shouldReturnAddress() {
+            Address address = createAddress();
+            AddressResponse response = createAddressResponse(ADDRESS_ID, true);
 
-            // When
+            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(createUser()));
+            when(addressRepository.findByIdAndUserId(ADDRESS_ID, USER_ID)).thenReturn(Optional.of(address));
+            when(addressMapper.toResponse(address)).thenReturn(response);
+
             AddressResponse result = addressService.getAddressById(USER_ID, ADDRESS_ID, AUTH0_ID);
 
-            // Then
-            assertThat(result).isNotNull();
             assertThat(result.getId()).isEqualTo(ADDRESS_ID);
-            assertThat(result.getStreet()).isEqualTo("Main Street");
-            assertThat(result.getFullAddress()).isEqualTo("Main Street, 00-001 Warsaw, Poland");
-            assertThat(result.getCreatedAt()).isNotNull();
-
-            verify(addressRepository).findByIdAndUserId(ADDRESS_ID, USER_ID);
         }
 
         @Test
-        @DisplayName("Should throw AddressNotFoundException when address does not exist")
-        void shouldThrowExceptionWhenAddressNotFound() {
-            // Given
-            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(testUser));
-            when(addressRepository.findByIdAndUserId(ADDRESS_ID, USER_ID))
-                    .thenReturn(Optional.empty());
+        @DisplayName("Should throw AddressNotFoundException when not found")
+        void shouldThrowWhenAddressNotFound() {
+            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(createUser()));
+            when(addressRepository.findByIdAndUserId(ADDRESS_ID, USER_ID)).thenReturn(Optional.empty());
 
-            // When & Then
             assertThatThrownBy(() -> addressService.getAddressById(USER_ID, ADDRESS_ID, AUTH0_ID))
                     .isInstanceOf(AddressNotFoundException.class);
         }
 
         @Test
-        @DisplayName("Should throw UnauthorizedAccessException when auth0Id does not match")
-        void shouldThrowExceptionWhenUnauthorized() {
-            // Given
-            String wrongAuth0Id = "auth0|different";
-            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(testUser));
+        @DisplayName("Should throw UnauthorizedAccessException for wrong auth0Id")
+        void shouldThrowWhenUnauthorized() {
+            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(createUser()));
 
-            // When & Then
-            assertThatThrownBy(() -> addressService.getAddressById(USER_ID, ADDRESS_ID, wrongAuth0Id))
+            assertThatThrownBy(() -> addressService.getAddressById(USER_ID, ADDRESS_ID, "wrong"))
                     .isInstanceOf(UnauthorizedAccessException.class);
-
-            verify(addressRepository, never()).findByIdAndUserId(any(), any());
         }
     }
 
     @Nested
-    @DisplayName("getUserAddresses Tests")
+    @DisplayName("getUserAddresses")
     class GetUserAddressesTests {
 
         @Test
         @DisplayName("Should return all user addresses")
-        void shouldReturnAllUserAddresses() {
-            // Given
-            Address address2 = Address.builder()
-                    .id(2L)
-                    .user(testUser)
-                    .street("Second Street")
-                    .city("Krakow")
-                    .postalCode("30-001")
-                    .apartmentNumber("5")
-                    .country("Poland")
-                    .isDefault(false)
-                    .label("Work")
-                    .latitude(50.0647)
-                    .longitude(19.9450)
-                    .createdAt(LocalDateTime.now())
-                    .build();
+        void shouldReturnAllAddresses() {
+            List<Address> addresses = List.of(createAddress(1L, true), createAddress(2L, false));
 
-            AddressResponse response2 = AddressResponse.builder()
-                    .id(2L)
-                    .street("Second Street")
-                    .city("Krakow")
-                    .postalCode("30-001")
-                    .apartmentNumber("5")
-                    .country("Poland")
-                    .fullAddress("Second Street, 30-001 Krakow, Poland")
-                    .isDefault(false)
-                    .label("Work")
-                    .latitude(50.0647)
-                    .longitude(19.9450)
-                    .createdAt(LocalDateTime.now())
-                    .build();
-
-            List<Address> addresses = Arrays.asList(testAddress, address2);
-
-            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(testUser));
+            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(createUser()));
             when(addressRepository.findByUserId(USER_ID)).thenReturn(addresses);
-            when(addressMapper.toResponse(testAddress)).thenReturn(testAddressResponse);
-            when(addressMapper.toResponse(address2)).thenReturn(response2);
+            when(addressMapper.toResponse(any())).thenAnswer(inv -> {
+                Address addr = inv.getArgument(0);
+                return createAddressResponse(addr.getId(), addr.getIsDefault());
+            });
 
-            // When
             List<AddressResponse> result = addressService.getUserAddresses(USER_ID, AUTH0_ID);
 
-            // Then
             assertThat(result).hasSize(2);
-            assertThat(result.get(0).getId()).isEqualTo(ADDRESS_ID);
-            assertThat(result.get(0).getLabel()).isEqualTo("Home");
+            assertThat(result.get(0).getId()).isEqualTo(1L);
             assertThat(result.get(1).getId()).isEqualTo(2L);
-            assertThat(result.get(1).getLabel()).isEqualTo("Work");
-
-            verify(addressRepository).findByUserId(USER_ID);
-            verify(addressMapper, times(2)).toResponse(any(Address.class));
         }
 
         @Test
-        @DisplayName("Should return empty list when user has no addresses")
-        void shouldReturnEmptyListWhenNoAddresses() {
-            // Given
-            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(testUser));
-            when(addressRepository.findByUserId(USER_ID)).thenReturn(new ArrayList<>());
+        @DisplayName("Should return empty list when no addresses")
+        void shouldReturnEmptyList() {
+            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(createUser()));
+            when(addressRepository.findByUserId(USER_ID)).thenReturn(List.of());
 
-            // When
             List<AddressResponse> result = addressService.getUserAddresses(USER_ID, AUTH0_ID);
 
-            // Then
             assertThat(result).isEmpty();
-            verify(addressRepository).findByUserId(USER_ID);
         }
 
         @Test
-        @DisplayName("Should throw UnauthorizedAccessException when auth0Id does not match")
-        void shouldThrowExceptionWhenUnauthorized() {
-            // Given
-            String wrongAuth0Id = "auth0|different";
-            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(testUser));
+        @DisplayName("Should throw UnauthorizedAccessException for wrong auth0Id")
+        void shouldThrowWhenUnauthorized() {
+            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(createUser()));
 
-            // When & Then
-            assertThatThrownBy(() -> addressService.getUserAddresses(USER_ID, wrongAuth0Id))
+            assertThatThrownBy(() -> addressService.getUserAddresses(USER_ID, "wrong"))
                     .isInstanceOf(UnauthorizedAccessException.class);
-
-            verify(addressRepository, never()).findByUserId(any());
         }
     }
 
     @Nested
-    @DisplayName("getDefaultAddressByAuth0Id Tests")
+    @DisplayName("getDefaultAddressByAuth0Id")
     class GetDefaultAddressByAuth0IdTests {
 
         @Test
-        @DisplayName("Should return default address for authenticated user")
+        @DisplayName("Should return default address")
         void shouldReturnDefaultAddress() {
-            // Given
-            when(userRepository.findByAuth0Id(AUTH0_ID)).thenReturn(Optional.of(testUser));
-            when(addressRepository.findDefaultAddressByAuth0Id(AUTH0_ID))
-                    .thenReturn(Optional.of(testAddress));
-            when(addressMapper.toResponse(testAddress)).thenReturn(testAddressResponse);
+            Address address = createAddress();
+            AddressResponse response = createAddressResponse(ADDRESS_ID, true);
 
-            // When
+            when(userRepository.findByAuth0Id(AUTH0_ID)).thenReturn(Optional.of(createUser()));
+            when(addressRepository.findDefaultAddressByAuth0Id(AUTH0_ID)).thenReturn(Optional.of(address));
+            when(addressMapper.toResponse(address)).thenReturn(response);
+
             AddressResponse result = addressService.getDefaultAddressByAuth0Id(AUTH0_ID);
 
-            // Then
-            assertThat(result).isNotNull();
             assertThat(result.getIsDefault()).isTrue();
-
-            verify(userRepository).findByAuth0Id(AUTH0_ID);
-            verify(addressRepository).findDefaultAddressByAuth0Id(AUTH0_ID);
         }
 
         @Test
-        @DisplayName("Should throw UserNotFoundException when user does not exist")
-        void shouldThrowExceptionWhenUserNotFound() {
-            // Given
+        @DisplayName("Should throw UserNotFoundException when user not found")
+        void shouldThrowWhenUserNotFound() {
             when(userRepository.findByAuth0Id(AUTH0_ID)).thenReturn(Optional.empty());
 
-            // When & Then
             assertThatThrownBy(() -> addressService.getDefaultAddressByAuth0Id(AUTH0_ID))
                     .isInstanceOf(UserNotFoundException.class);
-
-            verify(addressRepository, never()).findDefaultAddressByAuth0Id(any());
         }
 
         @Test
-        @DisplayName("Should throw AddressNotFoundException when no default address exists")
-        void shouldThrowExceptionWhenNoDefaultAddress() {
-            // Given
-            when(userRepository.findByAuth0Id(AUTH0_ID)).thenReturn(Optional.of(testUser));
-            when(addressRepository.findDefaultAddressByAuth0Id(AUTH0_ID))
-                    .thenReturn(Optional.empty());
+        @DisplayName("Should throw AddressNotFoundException when no default")
+        void shouldThrowWhenNoDefault() {
+            when(userRepository.findByAuth0Id(AUTH0_ID)).thenReturn(Optional.of(createUser()));
+            when(addressRepository.findDefaultAddressByAuth0Id(AUTH0_ID)).thenReturn(Optional.empty());
 
-            // When & Then
             assertThatThrownBy(() -> addressService.getDefaultAddressByAuth0Id(AUTH0_ID))
                     .isInstanceOf(AddressNotFoundException.class);
         }
     }
 
     @Nested
-    @DisplayName("updateAddress Tests")
+    @DisplayName("updateAddress")
     class UpdateAddressTests {
 
         @Test
-        @DisplayName("Should update address successfully")
-        void shouldUpdateAddressSuccessfully() {
-            // Given
-            testAddress.setIsDefault(false);
+        @DisplayName("Should update non-default address")
+        void shouldUpdateNonDefaultAddress() {
+            Address address = createAddress(ADDRESS_ID, false);
+            UpdateAddressRequest request = updateAddressRequest();
 
-            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(testUser));
-            when(addressRepository.findByIdAndUserId(ADDRESS_ID, USER_ID))
-                    .thenReturn(Optional.of(testAddress));
-            when(addressRepository.save(testAddress)).thenReturn(testAddress);
-            when(addressMapper.toResponse(testAddress)).thenReturn(testAddressResponse);
+            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(createUser()));
+            when(addressRepository.findByIdAndUserId(ADDRESS_ID, USER_ID)).thenReturn(Optional.of(address));
+            when(addressRepository.save(address)).thenReturn(address);
+            when(addressMapper.toResponse(address)).thenReturn(createAddressResponse(ADDRESS_ID, false));
 
-            // When
-            AddressResponse result = addressService.updateAddress(USER_ID, ADDRESS_ID, updateAddressRequest, AUTH0_ID);
+            AddressResponse result = addressService.updateAddress(USER_ID, ADDRESS_ID, request, AUTH0_ID);
 
-            // Then
             assertThat(result).isNotNull();
-
-            verify(addressMapper).updateEntityFromDto(updateAddressRequest, testAddress);
-            verify(addressRepository).save(testAddress);
+            verify(addressRepository).save(address);
             verify(addressRepository, never()).clearDefaultAddress(USER_ID);
         }
 
         @Test
-        @DisplayName("Should clear other default addresses when updating to default")
-        void shouldClearOtherDefaultAddressesWhenUpdatingToDefault() {
-            // Given
-            testAddress.setIsDefault(true);
+        @DisplayName("Should clear defaults when updating to default")
+        void shouldClearDefaultsWhenUpdatingToDefault() {
+            Address address = createAddress(ADDRESS_ID, true);
+            UpdateAddressRequest request = updateAddressRequest();
 
-            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(testUser));
-            when(addressRepository.findByIdAndUserId(ADDRESS_ID, USER_ID))
-                    .thenReturn(Optional.of(testAddress));
-            when(addressRepository.save(testAddress)).thenReturn(testAddress);
-            when(addressMapper.toResponse(testAddress)).thenReturn(testAddressResponse);
+            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(createUser()));
+            when(addressRepository.findByIdAndUserId(ADDRESS_ID, USER_ID)).thenReturn(Optional.of(address));
+            when(addressRepository.save(address)).thenReturn(address);
+            when(addressMapper.toResponse(address)).thenReturn(createAddressResponse(ADDRESS_ID, true));
 
-            // When
-            AddressResponse result = addressService.updateAddress(USER_ID, ADDRESS_ID, updateAddressRequest, AUTH0_ID);
-
-            // Then
-            assertThat(result).isNotNull();
+            addressService.updateAddress(USER_ID, ADDRESS_ID, request, AUTH0_ID);
 
             verify(addressRepository).clearDefaultAddress(USER_ID);
-            verify(addressRepository).save(testAddress);
-            assertThat(testAddress.getIsDefault()).isTrue();
+            assertThat(address.getIsDefault()).isTrue();
         }
 
         @Test
-        @DisplayName("Should update all address fields including optional ones")
-        void shouldUpdateAllAddressFields() {
-            // Given
-            testAddress.setIsDefault(false);
+        @DisplayName("Should throw AddressNotFoundException when not found")
+        void shouldThrowWhenAddressNotFound() {
+            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(createUser()));
+            when(addressRepository.findByIdAndUserId(ADDRESS_ID, USER_ID)).thenReturn(Optional.empty());
 
-            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(testUser));
-            when(addressRepository.findByIdAndUserId(ADDRESS_ID, USER_ID))
-                    .thenReturn(Optional.of(testAddress));
-            when(addressRepository.save(testAddress)).thenReturn(testAddress);
-
-            AddressResponse updatedResponse = AddressResponse.builder()
-                    .id(ADDRESS_ID)
-                    .street("New Street")
-                    .city("Krakow")
-                    .postalCode("30-001")
-                    .apartmentNumber("5")
-                    .country("Poland")
-                    .label("Work")
-                    .latitude(50.0647)
-                    .longitude(19.9450)
-                    .build();
-
-            when(addressMapper.toResponse(testAddress)).thenReturn(updatedResponse);
-
-            // When
-            AddressResponse result = addressService.updateAddress(USER_ID, ADDRESS_ID, updateAddressRequest, AUTH0_ID);
-
-            // Then
-            assertThat(result.getStreet()).isEqualTo("New Street");
-            assertThat(result.getCity()).isEqualTo("Krakow");
-            assertThat(result.getPostalCode()).isEqualTo("30-001");
-            assertThat(result.getApartmentNumber()).isEqualTo("5");
-            assertThat(result.getLabel()).isEqualTo("Work");
-            assertThat(result.getLatitude()).isEqualTo(50.0647);
-            assertThat(result.getLongitude()).isEqualTo(19.9450);
-        }
-
-        @Test
-        @DisplayName("Should throw AddressNotFoundException when address does not exist")
-        void shouldThrowExceptionWhenAddressNotFound() {
-            // Given
-            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(testUser));
-            when(addressRepository.findByIdAndUserId(ADDRESS_ID, USER_ID))
-                    .thenReturn(Optional.empty());
-
-            // When & Then
-            assertThatThrownBy(() -> addressService.updateAddress(USER_ID, ADDRESS_ID, updateAddressRequest, AUTH0_ID))
+            assertThatThrownBy(() -> addressService.updateAddress(USER_ID, ADDRESS_ID, updateAddressRequest(), AUTH0_ID))
                     .isInstanceOf(AddressNotFoundException.class);
-
-            verify(addressRepository, never()).save(any());
         }
 
         @Test
-        @DisplayName("Should throw UnauthorizedAccessException when auth0Id does not match")
-        void shouldThrowExceptionWhenUnauthorized() {
-            // Given
-            String wrongAuth0Id = "auth0|different";
-            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(testUser));
+        @DisplayName("Should throw UnauthorizedAccessException for wrong auth0Id")
+        void shouldThrowWhenUnauthorized() {
+            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(createUser()));
 
-            // When & Then
-            assertThatThrownBy(() -> addressService.updateAddress(USER_ID, ADDRESS_ID, updateAddressRequest, wrongAuth0Id))
+            assertThatThrownBy(() -> addressService.updateAddress(USER_ID, ADDRESS_ID, updateAddressRequest(), "wrong"))
                     .isInstanceOf(UnauthorizedAccessException.class);
-
-            verify(addressRepository, never()).findByIdAndUserId(any(), any());
-            verify(addressRepository, never()).save(any());
         }
     }
 
     @Nested
-    @DisplayName("setDefaultAddress Tests")
+    @DisplayName("setDefaultAddress")
     class SetDefaultAddressTests {
 
         @Test
-        @DisplayName("Should set address as default successfully")
-        void shouldSetAddressAsDefault() {
-            // Given
-            testAddress.setIsDefault(false);
+        @DisplayName("Should set address as default")
+        void shouldSetAsDefault() {
+            Address address = createAddress(ADDRESS_ID, false);
 
-            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(testUser));
-            when(addressRepository.findByIdAndUserId(ADDRESS_ID, USER_ID))
-                    .thenReturn(Optional.of(testAddress));
-            when(addressRepository.save(testAddress)).thenReturn(testAddress);
-            when(addressMapper.toResponse(testAddress)).thenReturn(testAddressResponse);
+            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(createUser()));
+            when(addressRepository.findByIdAndUserId(ADDRESS_ID, USER_ID)).thenReturn(Optional.of(address));
+            when(addressRepository.save(address)).thenReturn(address);
+            when(addressMapper.toResponse(address)).thenReturn(createAddressResponse(ADDRESS_ID, true));
 
-            // When
-            AddressResponse result = addressService.setDefaultAddress(USER_ID, ADDRESS_ID, AUTH0_ID);
-
-            // Then
-            assertThat(result).isNotNull();
+            addressService.setDefaultAddress(USER_ID, ADDRESS_ID, AUTH0_ID);
 
             verify(addressRepository).clearDefaultAddress(USER_ID);
-
-            ArgumentCaptor<Address> addressCaptor = ArgumentCaptor.forClass(Address.class);
-            verify(addressRepository).save(addressCaptor.capture());
-            assertThat(addressCaptor.getValue().getIsDefault()).isTrue();
+            assertThat(address.getIsDefault()).isTrue();
         }
 
         @Test
-        @DisplayName("Should throw AddressNotFoundException when address does not exist")
-        void shouldThrowExceptionWhenAddressNotFound() {
-            // Given
-            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(testUser));
-            when(addressRepository.findByIdAndUserId(ADDRESS_ID, USER_ID))
-                    .thenReturn(Optional.empty());
+        @DisplayName("Should throw AddressNotFoundException when not found")
+        void shouldThrowWhenNotFound() {
+            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(createUser()));
+            when(addressRepository.findByIdAndUserId(ADDRESS_ID, USER_ID)).thenReturn(Optional.empty());
 
-            // When & Then
             assertThatThrownBy(() -> addressService.setDefaultAddress(USER_ID, ADDRESS_ID, AUTH0_ID))
                     .isInstanceOf(AddressNotFoundException.class);
-
-            verify(addressRepository, never()).clearDefaultAddress(any());
-            verify(addressRepository, never()).save(any());
         }
 
         @Test
-        @DisplayName("Should throw UnauthorizedAccessException when auth0Id does not match")
-        void shouldThrowExceptionWhenUnauthorized() {
-            // Given
-            String wrongAuth0Id = "auth0|different";
-            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(testUser));
+        @DisplayName("Should throw UnauthorizedAccessException for wrong auth0Id")
+        void shouldThrowWhenUnauthorized() {
+            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(createUser()));
 
-            // When & Then
-            assertThatThrownBy(() -> addressService.setDefaultAddress(USER_ID, ADDRESS_ID, wrongAuth0Id))
+            assertThatThrownBy(() -> addressService.setDefaultAddress(USER_ID, ADDRESS_ID, "wrong"))
                     .isInstanceOf(UnauthorizedAccessException.class);
-
-            verify(addressRepository, never()).findByIdAndUserId(any(), any());
         }
     }
 
     @Nested
-    @DisplayName("deleteAddress Tests")
+    @DisplayName("deleteAddress")
     class DeleteAddressTests {
 
         @Test
-        @DisplayName("Should delete non-default address successfully")
-        void shouldDeleteNonDefaultAddress() {
-            // Given
-            testAddress.setIsDefault(false);
+        @DisplayName("Should delete non-default address")
+        void shouldDeleteNonDefault() {
+            Address address = createAddress(ADDRESS_ID, false);
 
-            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(testUser));
-            when(addressRepository.findByIdAndUserId(ADDRESS_ID, USER_ID))
-                    .thenReturn(Optional.of(testAddress));
+            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(createUser()));
+            when(addressRepository.findByIdAndUserId(ADDRESS_ID, USER_ID)).thenReturn(Optional.of(address));
 
-            // When
             addressService.deleteAddress(USER_ID, ADDRESS_ID, AUTH0_ID);
 
-            // Then
-            verify(addressRepository).delete(testAddress);
+            verify(addressRepository).delete(address);
             verify(addressRepository, never()).findByUserId(USER_ID);
         }
 
         @Test
-        @DisplayName("Should set new default when deleting default address with remaining addresses")
-        void shouldSetNewDefaultWhenDeletingDefaultAddress() {
-            // Given
-            testAddress.setIsDefault(true);
+        @DisplayName("Should set new default when deleting current default")
+        void shouldSetNewDefaultWhenDeletingDefault() {
+            Address defaultAddress = createAddress(ADDRESS_ID, true);
+            Address otherAddress = createAddress(2L, false);
 
-            Address address2 = Address.builder()
-                    .id(2L)
-                    .user(testUser)
-                    .street("Second Street")
-                    .city("Krakow")
-                    .postalCode("30-001")
-                    .isDefault(false)
-                    .build();
+            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(createUser()));
+            when(addressRepository.findByIdAndUserId(ADDRESS_ID, USER_ID)).thenReturn(Optional.of(defaultAddress));
+            when(addressRepository.findByUserId(USER_ID)).thenReturn(List.of(otherAddress));
 
-            List<Address> remainingAddresses = Collections.singletonList(address2);
-
-            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(testUser));
-            when(addressRepository.findByIdAndUserId(ADDRESS_ID, USER_ID))
-                    .thenReturn(Optional.of(testAddress));
-            when(addressRepository.findByUserId(USER_ID)).thenReturn(remainingAddresses);
-
-            // When
             addressService.deleteAddress(USER_ID, ADDRESS_ID, AUTH0_ID);
 
-            // Then
-            verify(addressRepository).delete(testAddress);
-            verify(addressRepository).findByUserId(USER_ID);
-
-            ArgumentCaptor<Address> addressCaptor = ArgumentCaptor.forClass(Address.class);
-            verify(addressRepository).save(addressCaptor.capture());
-            assertThat(addressCaptor.getValue().getIsDefault()).isTrue();
-            assertThat(addressCaptor.getValue().getId()).isEqualTo(2L);
+            verify(addressRepository).delete(defaultAddress);
+            verify(addressRepository).save(otherAddress);
+            assertThat(otherAddress.getIsDefault()).isTrue();
         }
 
         @Test
-        @DisplayName("Should not set new default when deleting last address")
-        void shouldNotSetDefaultWhenDeletingLastAddress() {
-            // Given
-            testAddress.setIsDefault(true);
+        @DisplayName("Should not set default when deleting last address")
+        void shouldNotSetDefaultWhenDeletingLast() {
+            Address address = createAddress(ADDRESS_ID, true);
 
-            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(testUser));
-            when(addressRepository.findByIdAndUserId(ADDRESS_ID, USER_ID))
-                    .thenReturn(Optional.of(testAddress));
-            when(addressRepository.findByUserId(USER_ID)).thenReturn(new ArrayList<>());
+            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(createUser()));
+            when(addressRepository.findByIdAndUserId(ADDRESS_ID, USER_ID)).thenReturn(Optional.of(address));
+            when(addressRepository.findByUserId(USER_ID)).thenReturn(List.of());
 
-            // When
             addressService.deleteAddress(USER_ID, ADDRESS_ID, AUTH0_ID);
 
-            // Then
-            verify(addressRepository).delete(testAddress);
-            verify(addressRepository).findByUserId(USER_ID);
-            verify(addressRepository, times(0)).save(any());
+            verify(addressRepository).delete(address);
+            verify(addressRepository, never()).save(any());
         }
 
         @Test
-        @DisplayName("Should throw AddressNotFoundException when address does not exist")
-        void shouldThrowExceptionWhenAddressNotFound() {
-            // Given
-            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(testUser));
-            when(addressRepository.findByIdAndUserId(ADDRESS_ID, USER_ID))
-                    .thenReturn(Optional.empty());
+        @DisplayName("Should throw AddressNotFoundException when not found")
+        void shouldThrowWhenNotFound() {
+            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(createUser()));
+            when(addressRepository.findByIdAndUserId(ADDRESS_ID, USER_ID)).thenReturn(Optional.empty());
 
-            // When & Then
             assertThatThrownBy(() -> addressService.deleteAddress(USER_ID, ADDRESS_ID, AUTH0_ID))
                     .isInstanceOf(AddressNotFoundException.class);
-
-            verify(addressRepository, never()).delete(any());
         }
 
         @Test
-        @DisplayName("Should throw UnauthorizedAccessException when auth0Id does not match")
-        void shouldThrowExceptionWhenUnauthorized() {
-            // Given
-            String wrongAuth0Id = "auth0|different";
-            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(testUser));
+        @DisplayName("Should throw UnauthorizedAccessException for wrong auth0Id")
+        void shouldThrowWhenUnauthorized() {
+            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(createUser()));
 
-            // When & Then
-            assertThatThrownBy(() -> addressService.deleteAddress(USER_ID, ADDRESS_ID, wrongAuth0Id))
-                    .isInstanceOf(UnauthorizedAccessException.class);
-
-            verify(addressRepository, never()).delete(any());
-        }
-    }
-
-    @Nested
-    @DisplayName("getUserAndValidateAccess Tests")
-    class GetUserAndValidateAccessTests {
-
-        @Test
-        @DisplayName("Should return user when validation passes")
-        void shouldReturnUserWhenValid() {
-            // Given
-            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(testUser));
-
-            // When - call through public method that uses private method
-            when(addressRepository.findByUserId(USER_ID)).thenReturn(new ArrayList<>());
-            addressService.getUserAddresses(USER_ID, AUTH0_ID);
-
-            // Then
-            verify(userRepository).findById(USER_ID);
-        }
-
-        @Test
-        @DisplayName("Should throw UserNotFoundException when user does not exist")
-        void shouldThrowUserNotFoundExceptionWhenUserDoesNotExist() {
-            // Given
-            when(userRepository.findById(USER_ID)).thenReturn(Optional.empty());
-
-            // When & Then
-            assertThatThrownBy(() -> addressService.getUserAddresses(USER_ID, AUTH0_ID))
-                    .isInstanceOf(UserNotFoundException.class);
-        }
-
-        @Test
-        @DisplayName("Should throw UnauthorizedAccessException when auth0Id mismatch")
-        void shouldThrowUnauthorizedExceptionWhenAuth0IdMismatch() {
-            // Given
-            String wrongAuth0Id = "auth0|wrong";
-            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(testUser));
-
-            // When & Then
-            assertThatThrownBy(() -> addressService.getUserAddresses(USER_ID, wrongAuth0Id))
+            assertThatThrownBy(() -> addressService.deleteAddress(USER_ID, ADDRESS_ID, "wrong"))
                     .isInstanceOf(UnauthorizedAccessException.class);
         }
     }

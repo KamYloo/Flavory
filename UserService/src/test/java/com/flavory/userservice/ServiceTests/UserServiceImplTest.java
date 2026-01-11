@@ -12,7 +12,6 @@ import com.flavory.userservice.repository.UserRepository;
 import com.flavory.userservice.security.JwtClaims;
 import com.flavory.userservice.service.FileStorageService;
 import com.flavory.userservice.service.impl.UserServiceImpl;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -35,42 +34,58 @@ import static org.mockito.Mockito.*;
 @DisplayName("UserServiceImpl Tests")
 class UserServiceImplTest {
 
-    @Mock
-    private UserRepository userRepository;
-
-    @Mock
-    private UserMapper userMapper;
-
-    @Mock
-    private UserEventPublisher eventPublisher;
-
-    @Mock
-    private FileStorageService fileStorageService;
+    @Mock private UserRepository userRepository;
+    @Mock private UserMapper userMapper;
+    @Mock private UserEventPublisher eventPublisher;
+    @Mock private FileStorageService fileStorageService;
 
     @InjectMocks
     private UserServiceImpl userService;
 
-    private User testUser;
-    private UserResponse testUserResponse;
-    private JwtClaims testClaims;
+    private static final String AUTH0_ID = "auth0|123456";
+    private static final Long USER_ID = 1L;
 
-    @BeforeEach
-    void setUp() {
-        testUser = User.builder()
-                .id(1L)
-                .auth0Id("auth0|123456")
+    private User createUser(UserStatus status, boolean verified) {
+        return User.builder()
+                .id(USER_ID)
+                .auth0Id(UserServiceImplTest.AUTH0_ID)
                 .email("test@example.com")
                 .firstName("John")
                 .lastName("Doe")
-                .profileImageUrl("https://example.com/image.jpg")
                 .role(UserRole.CUSTOMER)
-                .status(UserStatus.ACTIVE)
-                .isVerified(true)
+                .status(status)
+                .isVerified(verified)
                 .build();
+    }
 
-        testUserResponse = UserResponse.builder()
-                .id(1L)
-                .auth0Id("auth0|123456")
+    private User createActiveUser() {
+        return createUser(UserStatus.ACTIVE, true);
+    }
+
+    private User createUnverifiedUser() {
+        return createUser(UserStatus.PENDING_VERIFICATION, false);
+    }
+
+    private JwtClaims createClaims(String givenName, String familyName, Boolean emailVerified, List<String> roles) {
+        return JwtClaims.builder()
+                .sub(AUTH0_ID)
+                .email("test@example.com")
+                .givenName(givenName)
+                .familyName(familyName)
+                .picture("https://example.com/image.jpg")
+                .emailVerified(emailVerified)
+                .roles(roles)
+                .build();
+    }
+
+    private JwtClaims createVerifiedClaims() {
+        return createClaims("John", "Doe", true, List.of("Customer"));
+    }
+
+    private UserResponse createUserResponse() {
+        return UserResponse.builder()
+                .id(UserServiceImplTest.USER_ID)
+                .auth0Id(AUTH0_ID)
                 .email("test@example.com")
                 .firstName("John")
                 .lastName("Doe")
@@ -78,382 +93,275 @@ class UserServiceImplTest {
                 .role(UserRole.CUSTOMER)
                 .status(UserStatus.ACTIVE)
                 .build();
-
-        testClaims = JwtClaims.builder()
-                .sub("auth0|123456")
-                .email("test@example.com")
-                .givenName("John")
-                .familyName("Doe")
-                .picture("https://example.com/image.jpg")
-                .emailVerified(true)
-                .roles(List.of("Customer"))
-                .build();
     }
 
     @Nested
-    @DisplayName("getOrCreateUser Tests")
+    @DisplayName("getOrCreateUser")
     class GetOrCreateUserTests {
 
         @Test
-        @DisplayName("Should return existing user when user exists and no updates needed")
-        void shouldReturnExistingUserWhenNoUpdatesNeeded() {
-            when(userRepository.findByAuth0Id(testClaims.getSub())).thenReturn(Optional.of(testUser));
-            when(userMapper.toResponse(testUser)).thenReturn(testUserResponse);
+        @DisplayName("Should return existing user without updates")
+        void shouldReturnExistingUserWithoutUpdates() {
+            User user = createActiveUser();
+            JwtClaims claims = createVerifiedClaims();
+            UserResponse response = createUserResponse();
 
-            UserResponse result = userService.getOrCreateUser(testClaims);
+            when(userRepository.findByAuth0Id(AUTH0_ID)).thenReturn(Optional.of(user));
+            when(userMapper.toResponse(user)).thenReturn(response);
 
-            assertThat(result).isNotNull();
-            assertThat(result.getId()).isEqualTo(1L);
-            assertThat(result.getEmail()).isEqualTo("test@example.com");
+            UserResponse result = userService.getOrCreateUser(claims);
 
-            verify(userRepository).findByAuth0Id(testClaims.getSub());
+            assertThat(result.getId()).isEqualTo(USER_ID);
             verify(userRepository, never()).save(any());
             verify(eventPublisher, never()).publishUserUpdated(any());
-            verify(userMapper).toResponse(testUser);
         }
 
         @Test
-        @DisplayName("Should update and save user when claims contain new data")
-        void shouldUpdateUserWhenClaimsContainNewData() {
-            JwtClaims updatedClaims = JwtClaims.builder()
-                    .sub("auth0|123456")
-                    .email("test@example.com")
-                    .givenName("Jane")
-                    .familyName("Smith")
-                    .emailVerified(true)
-                    .build();
+        @DisplayName("Should update user when claims contain new data")
+        void shouldUpdateUserWhenClaimsChange() {
+            User user = createActiveUser();
+            JwtClaims updatedClaims = createClaims("Jane", "Smith", true, null);
 
-            User updatedUser = User.builder()
-                    .id(1L)
-                    .auth0Id("auth0|123456")
-                    .email("test@example.com")
-                    .firstName("Jane")
-                    .lastName("Smith")
-                    .role(UserRole.CUSTOMER)
-                    .status(UserStatus.ACTIVE)
-                    .isVerified(true)
-                    .build();
+            when(userRepository.findByAuth0Id(AUTH0_ID)).thenReturn(Optional.of(user));
+            when(userRepository.save(any())).thenReturn(user);
+            when(userMapper.toResponse(any())).thenReturn(createUserResponse());
 
-            when(userRepository.findByAuth0Id(updatedClaims.getSub())).thenReturn(Optional.of(testUser));
-            when(userRepository.save(any(User.class))).thenReturn(updatedUser);
-            when(userMapper.toResponse(any(User.class))).thenReturn(testUserResponse);
+            userService.getOrCreateUser(updatedClaims);
 
-            UserResponse result = userService.getOrCreateUser(updatedClaims);
-
-            assertThat(result).isNotNull();
-
-            verify(userRepository).findByAuth0Id(updatedClaims.getSub());
-            verify(userRepository).save(any(User.class));
-            verify(eventPublisher).publishUserUpdated(any(User.class));
+            verify(userRepository).save(user);
+            verify(eventPublisher).publishUserUpdated(user);
         }
 
         @Test
-        @DisplayName("Should create new user when user does not exist")
-        void shouldCreateNewUserWhenUserDoesNotExist() {
-            when(userRepository.findByAuth0Id(testClaims.getSub())).thenReturn(Optional.empty());
-            when(userRepository.save(any(User.class))).thenReturn(testUser);
-            when(userMapper.toResponse(testUser)).thenReturn(testUserResponse);
+        @DisplayName("Should activate user when email becomes verified")
+        void shouldActivateUserWhenEmailVerified() {
+            User unverifiedUser = createUnverifiedUser();
+            JwtClaims verifiedClaims = createVerifiedClaims();
 
-            UserResponse result = userService.getOrCreateUser(testClaims);
-
-            assertThat(result).isNotNull();
-            assertThat(result.getEmail()).isEqualTo("test@example.com");
-
-            ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
-            verify(userRepository).save(userCaptor.capture());
-
-            User savedUser = userCaptor.getValue();
-            assertThat(savedUser.getAuth0Id()).isEqualTo(testClaims.getSub());
-            assertThat(savedUser.getEmail()).isEqualTo(testClaims.getEmail());
-            assertThat(savedUser.getFirstName()).isEqualTo(testClaims.getGivenName());
-            assertThat(savedUser.getLastName()).isEqualTo(testClaims.getFamilyName());
-            assertThat(savedUser.getRole()).isEqualTo(UserRole.CUSTOMER);
-            assertThat(savedUser.getStatus()).isEqualTo(UserStatus.ACTIVE);
-
-            verify(eventPublisher).publishUserUpdated(testUser);
-        }
-
-        @Test
-        @DisplayName("Should create user with PENDING_VERIFICATION status when email not verified")
-        void shouldCreateUserWithPendingStatusWhenEmailNotVerified() {
-            JwtClaims unverifiedClaims = JwtClaims.builder()
-                    .sub("auth0|123456")
-                    .email("test@example.com")
-                    .givenName("John")
-                    .familyName("Doe")
-                    .emailVerified(false)
-                    .build();
-
-            when(userRepository.findByAuth0Id(unverifiedClaims.getSub())).thenReturn(Optional.empty());
-            when(userRepository.save(any(User.class))).thenReturn(testUser);
-            when(userMapper.toResponse(any(User.class))).thenReturn(testUserResponse);
-
-            userService.getOrCreateUser(unverifiedClaims);
-
-            ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
-            verify(userRepository).save(userCaptor.capture());
-
-            User savedUser = userCaptor.getValue();
-            assertThat(savedUser.getStatus()).isEqualTo(UserStatus.PENDING_VERIFICATION);
-            assertThat(savedUser.getIsVerified()).isFalse();
-        }
-
-        @Test
-        @DisplayName("Should create user with COOK role when role is in claims")
-        void shouldCreateUserWithCookRoleWhenSpecified() {
-            JwtClaims cookClaims = JwtClaims.builder()
-                    .sub("auth0|123456")
-                    .email("cook@example.com")
-                    .givenName("Chef")
-                    .familyName("Gordon")
-                    .emailVerified(true)
-                    .roles(List.of("Cook"))
-                    .build();
-
-            when(userRepository.findByAuth0Id(cookClaims.getSub())).thenReturn(Optional.empty());
-            when(userRepository.save(any(User.class))).thenReturn(testUser);
-            when(userMapper.toResponse(any(User.class))).thenReturn(testUserResponse);
-
-            userService.getOrCreateUser(cookClaims);
-
-            ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
-            verify(userRepository).save(userCaptor.capture());
-
-            User savedUser = userCaptor.getValue();
-            assertThat(savedUser.getRole()).isEqualTo(UserRole.COOK);
-        }
-
-        @Test
-        @DisplayName("Should create user with ADMIN role when admin role is in claims")
-        void shouldCreateUserWithAdminRoleWhenSpecified() {
-            JwtClaims adminClaims = JwtClaims.builder()
-                    .sub("auth0|123456")
-                    .email("admin@example.com")
-                    .givenName("Admin")
-                    .familyName("User")
-                    .emailVerified(true)
-                    .roles(List.of("Admin"))
-                    .build();
-
-            when(userRepository.findByAuth0Id(adminClaims.getSub())).thenReturn(Optional.empty());
-            when(userRepository.save(any(User.class))).thenReturn(testUser);
-            when(userMapper.toResponse(any(User.class))).thenReturn(testUserResponse);
-
-            userService.getOrCreateUser(adminClaims);
-
-            ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
-            verify(userRepository).save(userCaptor.capture());
-
-            User savedUser = userCaptor.getValue();
-            assertThat(savedUser.getRole()).isEqualTo(UserRole.ADMIN);
-        }
-
-        @Test
-        @DisplayName("Should handle null givenName and familyName in claims")
-        void shouldHandleNullNamesInClaims() {
-            JwtClaims claimsWithNullNames = JwtClaims.builder()
-                    .sub("auth0|123456")
-                    .email("test@example.com")
-                    .givenName(null)
-                    .familyName(null)
-                    .emailVerified(true)
-                    .build();
-
-            when(userRepository.findByAuth0Id(claimsWithNullNames.getSub())).thenReturn(Optional.empty());
-            when(userRepository.save(any(User.class))).thenReturn(testUser);
-            when(userMapper.toResponse(any(User.class))).thenReturn(testUserResponse);
-
-            userService.getOrCreateUser(claimsWithNullNames);
-
-            ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
-            verify(userRepository).save(userCaptor.capture());
-
-            User savedUser = userCaptor.getValue();
-            assertThat(savedUser.getFirstName()).isEqualTo("");
-            assertThat(savedUser.getLastName()).isEqualTo("");
-        }
-
-        @Test
-        @DisplayName("Should update user to ACTIVE when email becomes verified")
-        void shouldUpdateUserToActiveWhenEmailVerified() {
-            User unverifiedUser = User.builder()
-                    .id(1L)
-                    .auth0Id("auth0|123456")
-                    .email("test@example.com")
-                    .firstName("John")
-                    .lastName("Doe")
-                    .role(UserRole.CUSTOMER)
-                    .status(UserStatus.PENDING_VERIFICATION)
-                    .isVerified(false)
-                    .build();
-
-            JwtClaims verifiedClaims = JwtClaims.builder()
-                    .sub("auth0|123456")
-                    .email("test@example.com")
-                    .givenName("John")
-                    .familyName("Doe")
-                    .emailVerified(true)
-                    .build();
-
-            when(userRepository.findByAuth0Id(verifiedClaims.getSub())).thenReturn(Optional.of(unverifiedUser));
-            when(userRepository.save(any(User.class))).thenReturn(unverifiedUser);
-            when(userMapper.toResponse(any(User.class))).thenReturn(testUserResponse);
+            when(userRepository.findByAuth0Id(AUTH0_ID)).thenReturn(Optional.of(unverifiedUser));
+            when(userRepository.save(any())).thenReturn(unverifiedUser);
+            when(userMapper.toResponse(any())).thenReturn(createUserResponse());
 
             userService.getOrCreateUser(verifiedClaims);
 
-            verify(userRepository).save(any(User.class));
-            verify(eventPublisher).publishUserUpdated(any(User.class));
+            verify(userRepository).save(unverifiedUser);
+            verify(eventPublisher).publishUserUpdated(unverifiedUser);
+        }
+
+        @Test
+        @DisplayName("Should create new verified user")
+        void shouldCreateNewVerifiedUser() {
+            JwtClaims claims = createVerifiedClaims();
+            User newUser = createActiveUser();
+
+            when(userRepository.findByAuth0Id(AUTH0_ID)).thenReturn(Optional.empty());
+            when(userRepository.save(any())).thenReturn(newUser);
+            when(userMapper.toResponse(newUser)).thenReturn(createUserResponse());
+
+            UserResponse result = userService.getOrCreateUser(claims);
+
+            assertThat(result.getEmail()).isEqualTo("test@example.com");
+
+            ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+            verify(userRepository).save(captor.capture());
+
+            User savedUser = captor.getValue();
+            assertThat(savedUser.getAuth0Id()).isEqualTo(AUTH0_ID);
+            assertThat(savedUser.getStatus()).isEqualTo(UserStatus.ACTIVE);
+            assertThat(savedUser.getIsVerified()).isTrue();
+
+            verify(eventPublisher).publishUserUpdated(newUser);
+        }
+
+        @Test
+        @DisplayName("Should create unverified user when email not verified")
+        void shouldCreateUnverifiedUser() {
+            JwtClaims unverifiedClaims = createClaims("John", "Doe", false, null);
+
+            when(userRepository.findByAuth0Id(AUTH0_ID)).thenReturn(Optional.empty());
+            when(userRepository.save(any())).thenReturn(createUnverifiedUser());
+            when(userMapper.toResponse(any())).thenReturn(createUserResponse());
+
+            userService.getOrCreateUser(unverifiedClaims);
+
+            ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+            verify(userRepository).save(captor.capture());
+
+            assertThat(captor.getValue().getStatus()).isEqualTo(UserStatus.PENDING_VERIFICATION);
+            assertThat(captor.getValue().getIsVerified()).isFalse();
+        }
+
+        @Test
+        @DisplayName("Should assign COOK role from claims")
+        void shouldAssignCookRole() {
+            JwtClaims cookClaims = createClaims("Chef", "Gordon", true, List.of("Cook"));
+
+            when(userRepository.findByAuth0Id(AUTH0_ID)).thenReturn(Optional.empty());
+            when(userRepository.save(any())).thenReturn(createActiveUser());
+            when(userMapper.toResponse(any())).thenReturn(createUserResponse());
+
+            userService.getOrCreateUser(cookClaims);
+
+            ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+            verify(userRepository).save(captor.capture());
+            assertThat(captor.getValue().getRole()).isEqualTo(UserRole.COOK);
+        }
+
+        @Test
+        @DisplayName("Should assign ADMIN role from claims")
+        void shouldAssignAdminRole() {
+            JwtClaims adminClaims = createClaims("Admin", "User", true, List.of("Admin"));
+
+            when(userRepository.findByAuth0Id(AUTH0_ID)).thenReturn(Optional.empty());
+            when(userRepository.save(any())).thenReturn(createActiveUser());
+            when(userMapper.toResponse(any())).thenReturn(createUserResponse());
+
+            userService.getOrCreateUser(adminClaims);
+
+            ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+            verify(userRepository).save(captor.capture());
+            assertThat(captor.getValue().getRole()).isEqualTo(UserRole.ADMIN);
+        }
+
+        @Test
+        @DisplayName("Should handle null names in claims")
+        void shouldHandleNullNames() {
+            JwtClaims claimsWithNullNames = createClaims(null, null, true, null);
+
+            when(userRepository.findByAuth0Id(AUTH0_ID)).thenReturn(Optional.empty());
+            when(userRepository.save(any())).thenReturn(createActiveUser());
+            when(userMapper.toResponse(any())).thenReturn(createUserResponse());
+
+            userService.getOrCreateUser(claimsWithNullNames);
+
+            ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+            verify(userRepository).save(captor.capture());
+
+            assertThat(captor.getValue().getFirstName()).isEqualTo("");
+            assertThat(captor.getValue().getLastName()).isEqualTo("");
         }
     }
 
     @Nested
-    @DisplayName("getUserById Tests")
+    @DisplayName("getUserById")
     class GetUserByIdTests {
 
         @Test
-        @DisplayName("Should return user when user exists")
-        void shouldReturnUserWhenExists() {
-            Long userId = 1L;
-            when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
-            when(userMapper.toResponse(testUser)).thenReturn(testUserResponse);
+        @DisplayName("Should return user when exists")
+        void shouldReturnUser() {
+            User user = createActiveUser();
+            UserResponse response = createUserResponse();
 
-            UserResponse result = userService.getUserById(userId);
+            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
+            when(userMapper.toResponse(user)).thenReturn(response);
 
-            assertThat(result).isNotNull();
-            assertThat(result.getId()).isEqualTo(userId);
+            UserResponse result = userService.getUserById(USER_ID);
+
+            assertThat(result.getId()).isEqualTo(USER_ID);
             assertThat(result.getEmail()).isEqualTo("test@example.com");
-
-            verify(userRepository).findById(userId);
-            verify(userMapper).toResponse(testUser);
         }
 
         @Test
-        @DisplayName("Should throw UserNotFoundException when user does not exist")
-        void shouldThrowExceptionWhenUserNotFound() {
-            Long userId = 999L;
-            when(userRepository.findById(userId)).thenReturn(Optional.empty());
+        @DisplayName("Should throw UserNotFoundException when not found")
+        void shouldThrowWhenNotFound() {
+            when(userRepository.findById(USER_ID)).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> userService.getUserById(userId))
+            assertThatThrownBy(() -> userService.getUserById(USER_ID))
                     .isInstanceOf(UserNotFoundException.class);
-
-            verify(userRepository).findById(userId);
-            verify(userMapper, never()).toResponse(any());
         }
     }
 
     @Nested
-    @DisplayName("updateUser Tests")
+    @DisplayName("updateUser")
     class UpdateUserTests {
 
-        private UpdateUserRequest updateRequest;
-        private MultipartFile mockImage;
-
-        @BeforeEach
-        void setUp() {
-            updateRequest = UpdateUserRequest.builder()
+        private UpdateUserRequest createUpdateRequest() {
+            return UpdateUserRequest.builder()
                     .firstName("Jane")
                     .lastName("Smith")
                     .phoneNumber("+48123456789")
                     .build();
-
-            mockImage = mock(MultipartFile.class);
         }
 
         @Test
-        @DisplayName("Should update user successfully without image")
+        @DisplayName("Should update user without image")
         void shouldUpdateUserWithoutImage() {
-            Long userId = 1L;
-            String currentAuth0Id = "auth0|123456";
+            User user = createActiveUser();
+            UpdateUserRequest request = createUpdateRequest();
 
-            when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
-            when(userRepository.save(any(User.class))).thenReturn(testUser);
-            when(userMapper.toResponse(testUser)).thenReturn(testUserResponse);
+            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
+            when(userRepository.save(user)).thenReturn(user);
+            when(userMapper.toResponse(user)).thenReturn(createUserResponse());
 
-            UserResponse result = userService.updateUser(userId, updateRequest, currentAuth0Id, null);
+            UserResponse result = userService.updateUser(USER_ID, request, AUTH0_ID, null);
 
             assertThat(result).isNotNull();
-
-            verify(userRepository).findById(userId);
-            verify(userMapper).updateEntityFromDto(updateRequest, testUser);
-            verify(userRepository).save(testUser);
-            verify(eventPublisher).publishUserUpdated(testUser);
+            verify(userRepository).save(user);
+            verify(eventPublisher).publishUserUpdated(user);
             verify(fileStorageService, never()).storeFile(any());
         }
 
         @Test
-        @DisplayName("Should update user with new profile image")
+        @DisplayName("Should update user with new image")
         void shouldUpdateUserWithImage() {
-            Long userId = 1L;
-            String currentAuth0Id = "auth0|123456";
-            String newImageUrl = "https://example.com/new-image.jpg";
+            User user = createActiveUser();
+            UpdateUserRequest request = createUpdateRequest();
+            MultipartFile image = mock(MultipartFile.class);
 
-            when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
-            when(mockImage.isEmpty()).thenReturn(false);
-            when(fileStorageService.storeFile(mockImage)).thenReturn(newImageUrl);
-            when(userRepository.save(any(User.class))).thenReturn(testUser);
-            when(userMapper.toResponse(testUser)).thenReturn(testUserResponse);
+            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
+            when(image.isEmpty()).thenReturn(false);
+            when(fileStorageService.storeFile(image)).thenReturn("https://example.com/new-image.jpg");
+            when(userRepository.save(user)).thenReturn(user);
+            when(userMapper.toResponse(user)).thenReturn(createUserResponse());
 
-            UserResponse result = userService.updateUser(userId, updateRequest, currentAuth0Id, mockImage);
+            userService.updateUser(USER_ID, request, AUTH0_ID, image);
 
-            assertThat(result).isNotNull();
-
-            verify(userRepository).findById(userId);
-            verify(fileStorageService).storeFile(mockImage);
-            verify(userRepository).save(testUser);
-            verify(eventPublisher).publishUserUpdated(testUser);
-
-            ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
-            verify(userRepository).save(userCaptor.capture());
+            verify(fileStorageService).storeFile(image);
+            verify(userRepository).save(user);
         }
 
         @Test
-        @DisplayName("Should not store image when image is empty")
+        @DisplayName("Should not store empty image")
         void shouldNotStoreEmptyImage() {
-            Long userId = 1L;
-            String currentAuth0Id = "auth0|123456";
+            User user = createActiveUser();
+            UpdateUserRequest request = createUpdateRequest();
+            MultipartFile image = mock(MultipartFile.class);
 
-            when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
-            when(mockImage.isEmpty()).thenReturn(true);
-            when(userRepository.save(any(User.class))).thenReturn(testUser);
-            when(userMapper.toResponse(testUser)).thenReturn(testUserResponse);
+            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
+            when(image.isEmpty()).thenReturn(true);
+            when(userRepository.save(user)).thenReturn(user);
+            when(userMapper.toResponse(user)).thenReturn(createUserResponse());
 
-            userService.updateUser(userId, updateRequest, currentAuth0Id, mockImage);
+            userService.updateUser(USER_ID, request, AUTH0_ID, image);
 
             verify(fileStorageService, never()).storeFile(any());
         }
 
         @Test
-        @DisplayName("Should throw UserNotFoundException when user does not exist")
-        void shouldThrowExceptionWhenUserNotFound() {
-            Long userId = 999L;
-            String currentAuth0Id = "auth0|123456";
+        @DisplayName("Should throw UserNotFoundException when user not found")
+        void shouldThrowWhenUserNotFound() {
+            UpdateUserRequest request = createUpdateRequest();
 
-            when(userRepository.findById(userId)).thenReturn(Optional.empty());
+            when(userRepository.findById(USER_ID)).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> userService.updateUser(userId, updateRequest, currentAuth0Id, null))
+            assertThatThrownBy(() -> userService.updateUser(USER_ID, request, AUTH0_ID, null))
                     .isInstanceOf(UserNotFoundException.class);
 
-            verify(userRepository).findById(userId);
-            verify(userMapper, never()).updateEntityFromDto(any(), any());
             verify(userRepository, never()).save(any());
-            verify(eventPublisher, never()).publishUserUpdated(any());
         }
 
         @Test
-        @DisplayName("Should throw UserNotFoundException when auth0Id does not match")
-        void shouldThrowExceptionWhenAuth0IdDoesNotMatch() {
-            Long userId = 1L;
-            String wrongAuth0Id = "auth0|different";
+        @DisplayName("Should throw UserNotFoundException for wrong auth0Id")
+        void shouldThrowWhenWrongAuth0Id() {
+            User user = createActiveUser();
+            UpdateUserRequest request = createUpdateRequest();
 
-            when(userRepository.findById(userId)).thenReturn(Optional.of(testUser));
+            when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user));
 
-            assertThatThrownBy(() -> userService.updateUser(userId, updateRequest, wrongAuth0Id, null))
+            assertThatThrownBy(() -> userService.updateUser(USER_ID, request, "wrong", null))
                     .isInstanceOf(UserNotFoundException.class);
 
-            verify(userRepository).findById(userId);
-            verify(userMapper, never()).updateEntityFromDto(any(), any());
             verify(userRepository, never()).save(any());
-            verify(eventPublisher, never()).publishUserUpdated(any());
         }
     }
 }

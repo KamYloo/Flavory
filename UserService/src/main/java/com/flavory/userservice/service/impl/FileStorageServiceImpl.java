@@ -30,11 +30,10 @@ public class FileStorageServiceImpl implements FileStorageService {
     private String baseUrl;
 
     public FileStorageServiceImpl(@Value("${app.file.upload-dir:/uploads/userProfiles}") String uploadDir) {
-        this.fileStorageLocation = Paths.get(uploadDir).toAbsolutePath().normalize();
-
         try {
+            this.fileStorageLocation = Paths.get(uploadDir).toAbsolutePath().normalize();
             Files.createDirectories(this.fileStorageLocation);
-        } catch (IOException ex) {
+        } catch (Exception ex) {
             throw new FileStorageException("Nie można utworzyć katalogu do przechowywania plików", ex);
         }
     }
