@@ -1,4 +1,4 @@
-package com.flavory.userservice.ServiceTests;
+package com.flavory.userservice.serviceTests;
 
 import com.flavory.userservice.dto.request.UpdateUserRequest;
 import com.flavory.userservice.dto.response.UserResponse;

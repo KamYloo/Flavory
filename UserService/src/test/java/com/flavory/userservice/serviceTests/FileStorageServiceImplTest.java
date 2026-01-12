@@ -1,4 +1,4 @@
-package com.flavory.userservice.ServiceTests;
+package com.flavory.userservice.serviceTests;
 
 import com.flavory.userservice.exception.FileStorageException;
 import com.flavory.userservice.service.impl.FileStorageServiceImpl;
